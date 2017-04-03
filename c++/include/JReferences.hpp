@@ -2,7 +2,7 @@
 #define JREFERENCES_HPP
 
 #include <vector>
-#include "dukazorrobridge.hpp"
+#include "igzorrobridge.hpp"
 
 typedef struct JMethodDesc
 {
@@ -14,9 +14,9 @@ typedef struct JMethodDesc
 namespace JData
 {
 
-extern jobject JDukaZorroBridgeObject;
+extern jobject JIgZorroBridgeObject;
 
-extern jclass JDukaZorroBridgeClass;
+extern jclass JIgZorroBridgeClass;
 extern jclass JZorroClass;
 extern jclass ExceptionClass;
 
@@ -41,11 +41,11 @@ extern const JNINativeMethod nativesTable[2];
 extern const int nativesTableSize;
 
 extern const char* JVMClassPathOption;
-extern const char* DukaZorroBridgePath;
+extern const char* IgZorroBridgePath;
 extern const char* ZorroPath;
 extern const char* ExcPath;
 
-extern const std::vector<JMethodDesc*> dukaZorroBridgeMethods;
+extern const std::vector<JMethodDesc*> igZorroBridgeMethods;
 
 extern const int JNI_VERSION;
 

@@ -1,7 +1,7 @@
 #ifndef JNIHANDLER_HPP
 #define JNIHANDLER_HPP
 
-#include "dukazorrobridge.hpp"
+#include "igzorrobridge.hpp"
 
 class JNIHandler
 {

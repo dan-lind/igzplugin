@@ -1,7 +1,7 @@
 #ifndef DLLCALLHANDLER_HPP
 #define DLLCALLHANDLER_HPP
 
-#include "dukazorrobridge.hpp"
+#include "igzorrobridge.hpp"
 #include "JNIHandler.hpp"
 
 class DllCallHandler
