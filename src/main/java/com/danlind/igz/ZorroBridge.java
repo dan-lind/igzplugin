@@ -89,7 +89,7 @@ public class ZorroBridge {
 
     public int doBrokerTrade(final int nTradeID,
                              final double orderParams[]) {
-        logger.debug("Broker Trade called with params \nnTradeId {}", nTradeID);
+//        logger.debug("Broker Trade called with params \nnTradeId {}", nTradeID);
         return tradeHandler.brokerTrade(nTradeID, orderParams);
     }
 

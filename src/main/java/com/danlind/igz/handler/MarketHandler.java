@@ -75,17 +75,18 @@ public class MarketHandler {
                     new ContractDetails(epic,
                             (1d/marketDetails.getSnapshot().getScalingFactor()),
                             Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip()),
-                            marketDetails.getInstrument().getLotSize(),
+                            marketDetails.getDealingRules().getMinDealSize().getValue(),
                             marketDetails.getInstrument().getMarginFactor().doubleValue(),
                             marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
                             marketDetails.getSnapshot().getBid().doubleValue(),
                             marketDetails.getSnapshot().getOffer().doubleValue(),
+                            marketDetails.getSnapshot().getScalingFactor(),
                             marketDetails.getSnapshot().getMarketStatus());
             logger.debug("Creating new ContractDetails for epic {} with scaling factor {}, pip value {}, lot size {}, margin factor {}, marget status {}",
                     epic.getName(),
                     (1d/marketDetails.getSnapshot().getScalingFactor()),
                     Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip()),
-                    marketDetails.getInstrument().getLotSize(),
+                    marketDetails.getDealingRules().getMinDealSize().getValue(),
                     marketDetails.getInstrument().getMarginFactor().doubleValue(),
                     marketDetails.getSnapshot().getMarketStatus());
             contractDetailsMap.put(epic, contractDetails);

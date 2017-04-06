@@ -180,7 +180,7 @@ DllCallHandler::BrokerHistory2(const char *Asset,
 		ticks[i].fHigh = ticksParams[paramsIndex + 2];
 		ticks[i].fLow = ticksParams[paramsIndex + 3];
 		ticks[i].time = ticksParams[paramsIndex + 4];
-		//ticks[i].fVal = ticksParams[paramsIndex + 5];
+		ticks[i].fVal = ticksParams[paramsIndex + 5];
 		ticks[i].fVol = ticksParams[paramsIndex + 6];
 
 		if (!BrokerProgress(100 * i / nTicks))

@@ -56,7 +56,7 @@ public class AssetHandler {
             listeners.add(streamingAPI.subscribeForChartTicks(epic.getName(), new HandyTableListenerAdapter() {
                 @Override
                 public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                    logger.debug("Received tick update from Lightstreamer for asset {} with data {}", s, updateInfo);
+//                    logger.debug("Received tick update from Lightstreamer for asset {} with data {}", s, updateInfo);
                     if (Objects.nonNull(updateInfo.getNewValue(1))) {
                         updatePriceDetails(new Epic(updateInfo.getItemName().split(":")[1]),
                                 Double.parseDouble(updateInfo.getNewValue(BID)),
@@ -69,7 +69,7 @@ public class AssetHandler {
             listeners.add(streamingAPI.subscribeForChartCandles(epic.getName(), MINUTE, new HandyTableListenerAdapter() {
                 @Override
                 public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                    logger.debug("Received chart update from Lightstreamer for asset {} with data {}", s, updateInfo);
+//                  logger.debug("Received chart update from Lightstreamer for asset {} with data {}", s, updateInfo);
                     if (updateInfo.getNewValue(CONS_END).equals(ONE)) {
                         logger.debug("Minute candle ended with volume {}", updateInfo.getNewValue(LAST_TRADED_VOLUME));
                         volumeProvider.updateRollingVolume(epic, Integer.parseInt(updateInfo.getNewValue(LAST_TRADED_VOLUME)));
@@ -107,15 +107,15 @@ public class AssetHandler {
             assetParams[0] = priceDetails.getAsk();
             assetParams[1] = priceDetails.getSpread();
             assetParams[2] = priceDetails.getVolume(); //Volume
-            assetParams[3] = contractDetails.getPipSize(); //PipSize
-            assetParams[4] = contractDetails.getPipCostInAccountCurrency(); //PipCost, size of one Pip, e.g. 0.0001 for EUR/USD
+            assetParams[3] = contractDetails.getPipSize(); //PipSize, , size of one Pip, e.g. 0.0001 for EUR/USD
+            assetParams[4] = contractDetails.getPipCostInAccountCurrency(); //PipCost
             assetParams[5] = contractDetails.getLotAmount(); //LotAmount
             assetParams[6] = contractDetails.getMarginCostInAccountCurrency(); //MarginCost
             assetParams[7] = valueNotSupported; //Rollover cost Long
             assetParams[8] = valueNotSupported; //Rollover cost Short
 //            logger.debug("Returning asset data Ask: {}, Spread: {}, Volume: {}, PipSize: {}, PipCost: {}, LotAmount: {}, MarginCost: {}",
-//                    priceDetails.getAsk(), priceDetails.getSpread(), priceDetails.getVolume(), contractDetails.getPipSize(), contractDetails.getPipCost(),
-//                    contractDetails.getLotAmount(), contractDetails.getMarginCost());
+//                    priceDetails.getAsk(), priceDetails.getSpread(), priceDetails.getVolume(), contractDetails.getPipSize(), contractDetails.getPipCostInAccountCurrency(),
+//                    contractDetails.getLotAmount(), contractDetails.getMarginCostInAccountCurrency());
 
             return ZorroReturnValues.ASSET_AVAILABLE.getValue();
         } else {

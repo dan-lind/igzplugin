@@ -1,12 +1,14 @@
 package com.danlind.igz.domain.types;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Created by danlin on 2017-03-21.
  */
-public class Epic {
+public class Epic implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private final String name;
 
     public Epic(String name) {
