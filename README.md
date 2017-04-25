@@ -13,7 +13,7 @@ Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
 
 3.) Install [Zorro](http://www.takemoneyfromtherichandgiveittothepoor.com/download.php) if not already on your machine.
 
-4.) Download the [dukascopy.zip](https://github.com/juxeii/dztools/releases) archive.
+4.) Download the [igplugin.zip](https://github.com/dan-lind/igzplugin/releases) archive.
 
 5.) Extract the archive into *${yourZorroInstallPath\Plugin}* folder.
 
