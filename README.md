@@ -50,5 +50,5 @@ Please use [pastebin](http://pastebin.com/) for uploading the logs.
 - The default allowance for IG historic prices is 10 000 quotes per week. If your allowance goes to zero, you won't even be able to download quotes for the lookback period. This means it is not a good idea to use IG as a source for downloading long periods of historic data.
 - The default quotas for IG Streaming API connections is 40 concurrent connections. Currently the plugin uses 2 streams per asset, which means so can at a maximum trade 20 assets at the same time.
 - Feel free to suggest improvements, post issues or suggest pull requests here on Github
-- Follow discussions for this project on the [Zorro forum](http://www.opserver.de/ubb7/ubbthreads.php?ubb=showflat&Number=447697&#Post447697)
+- Follow discussions for this project on the [Zorro forum](http://www.opserver.de/ubb7/ubbthreads.php?ubb=showflat&Number=465410#Post465410)
 - Find me on Twitter, @SweetSpotDan
