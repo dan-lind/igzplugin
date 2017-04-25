@@ -22,11 +22,11 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
-        <module name="igztools" />
+        <module name="igplugin" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="igztools" target="1.8" />
+      <module name="igplugin" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

@@ -13,7 +13,6 @@ import javax.validation.constraints.NotNull;
 @ConfigurationProperties("plugin")
 public class PluginConfig {
 
-    @NotNull
     private String realApiKey;
 
     private String demoApiKey;
@@ -21,6 +20,10 @@ public class PluginConfig {
     private String realApiUrl;
 
     private String demoApiUrl;
+
+    private int refreshTokenInterval;
+
+    private int refreshMarketDataInterval;
 
     public String getDemoApiKey() {
         return demoApiKey;
@@ -52,5 +55,21 @@ public class PluginConfig {
 
     public void setRealApiKey(String realApiKey) {
         this.realApiKey = realApiKey;
+    }
+
+    public int getRefreshTokenInterval() {
+        return refreshTokenInterval;
+    }
+
+    public void setRefreshTokenInterval(int refreshTokenInterval) {
+        this.refreshTokenInterval = refreshTokenInterval;
+    }
+
+    public int getRefreshMarketDataInterval() {
+        return refreshMarketDataInterval;
+    }
+
+    public void setRefreshMarketDataInterval(int refreshMarketDataInterval) {
+        this.refreshMarketDataInterval = refreshMarketDataInterval;
     }
 }

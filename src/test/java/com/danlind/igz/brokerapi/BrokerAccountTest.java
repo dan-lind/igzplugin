@@ -54,12 +54,6 @@ public class BrokerAccountTest {
     @Mock
     LoginHandler loginHandler;
 
-    @Mock
-    ChronicleMap<Integer, OrderDetails> orderReferenceMap;
-
-    @Mock
-    OrderDetails orderDetails;
-
     @InjectMocks
     RestApiAdapter restApiAdapter;
 
@@ -69,30 +63,12 @@ public class BrokerAccountTest {
     BrokerAccount brokerAccount;
     AccountDetails accountDetails;
 
-    private GetDealConfirmationV1Response getDealConfirmationV1Response = new GetDealConfirmationV1Response();
-
     @Before
     public void setUp() throws Exception {
         brokerAccount = new BrokerAccount(restApiAdapter, streamingApiAdapter);
 
-        UpdateOTCPositionV2Response response = new UpdateOTCPositionV2Response();
-        response.setDealReference("TestDealReference");
-
-        PowerMockito.mockStatic(Zorro.class);
-        PowerMockito.doNothing().when(Zorro.class,"indicateError");
-
         accountDetails = new AccountDetails(5000, 10, 15);
-
-        getDealConfirmationV1Response.setDealId("TestDealId");
-        getDealConfirmationV1Response.setReason(Reason.CANNOT_CHANGE_STOP_TYPE);
-
         when(loginHandler.getAccountId()).thenReturn("TestAccountId");
-
-        when(restApi.updateOTCPositionV2(any(), any(), any())).thenReturn(response);
-        when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
-        when(orderDetails.getDealId()).thenReturn(new DealId("TestDealId"));
-        when(orderReferenceMap.get(any())).thenReturn(orderDetails);
-
 
         AccountsItem accountsItem = new AccountsItem();
         Balance balance = new Balance();
@@ -122,5 +98,18 @@ public class BrokerAccountTest {
         assertArrayEquals(new double[]{20000, 20, 30}, accountParams,0);
     }
 
+    @Test
+    public void testBrokerAccountSubscribeError() throws Exception {
+        PublishSubject<AccountDetails> subject = PublishSubject.create();
+        when(streamingApiAdapter.getAccountObservable("TestAccountId")).thenReturn(subject);
 
+        double[] accountParams = new double[3];
+        brokerAccount.startAccountSubscription();
+        brokerAccount.fillAccountParams(accountParams);
+
+        subject.onError(new Exception("TestException"));
+        System.out.println(subject.getThrowable().getMessage());
+        assertEquals(true,subject.hasThrowable());
+        assertEquals("TestException", subject.getThrowable().getMessage());
+    }
 }

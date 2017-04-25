@@ -37,10 +37,10 @@ public class BeanConfiguration {
       return HttpClients.createDefault();
    }
 
-   @Bean
-   @Qualifier(value = "ig.api.domain.URL")
-   public String igApiDomainURL() {
-      return PropertiesUtil.getProperty("environment.URL");
-   }
+//   @Bean
+//   @Qualifier(value = "ig.api.domain.URL")
+//   public String igApiDomainURL() {
+//      return PropertiesUtil.getProperty("environment.URL");
+//   }
 
 }

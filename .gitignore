@@ -28,6 +28,8 @@
 ## File-based project format:
 *.iws
 
+*.iml
+
 ### Maven ###
 target/
 pom.xml.tag

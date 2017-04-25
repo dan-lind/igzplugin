@@ -9,14 +9,14 @@ import java.util.Objects;
 public class DealId implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private final String dealreference;
+    private final String dealId;
 
-    public DealId(String dealreference) {
-        Objects.requireNonNull(dealreference);
-        this.dealreference = dealreference;
+    public DealId(String dealId) {
+        Objects.requireNonNull(dealId);
+        this.dealId = dealId;
     }
 
     public String getValue() {
-        return dealreference;
+        return dealId;
     }
 }

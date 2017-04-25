@@ -1,53 +1,78 @@
 package com.danlind.igz.brokerapi;
 
+import com.danlind.igz.adapter.RestApiAdapter;
+import com.danlind.igz.config.ZorroReturnValues;
+import com.danlind.igz.domain.ContractDetails;
+import com.danlind.igz.domain.OrderDetails;
+import com.danlind.igz.domain.PriceDetails;
+import com.danlind.igz.handler.AssetHandler;
+import com.danlind.igz.misc.MarketDataProvider;
+import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
+import net.openhft.chronicle.map.ChronicleMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Objects;
+
+@Component
 public class BrokerTrade {
 
-//    private final TradeUtil tradeUtil;
-//    private final StrategyUtil strategyUtil;
-//
-//    private final static double rollOverNotSupported = 0.0;
-//    private final static Logger logger = LoggerFactory.getLogger(BrokerTrade.class);
-//
-//    public BrokerTrade(final TradeUtil tradeUtil) {
-//        this.tradeUtil = tradeUtil;
-//        strategyUtil = tradeUtil.strategyUtil();
-//    }
-//
-//    public int fillTradeParams(final int nTradeID,
-//                               final double orderParams[]) {
-//        final IOrder order = tradeUtil.orderByID(nTradeID);
-//        if (order == null)
-//            return ZorroReturnValues.UNKNOWN_ORDER_ID.getValue();
-//
-//        fillTradeParams(order, orderParams);
-//        if (order.getState() == IOrder.State.CLOSED) {
-//            logger.debug("Order with ID " + nTradeID + " was recently closed.");
-//            return ZorroReturnValues.ORDER_RECENTLY_CLOSED.getValue();
-//        }
-//        final int noOfContracts = tradeUtil.amountToContracts(order.getAmount());
-//
-//        logger.trace("Trade params for nTradeID " + nTradeID + "\n"
-//                + "pOpen: " + orderParams[0] + "\n"
-//                + "pClose: " + orderParams[1] + "\n"
-//                + "pRoll: " + orderParams[2] + "\n"
-//                + "pProfit: " + orderParams[3] + "\n"
-//                + "noOfContracts: " + noOfContracts);
-//        return noOfContracts;
-//    }
-//
-//    private void fillTradeParams(final IOrder order,
-//                                 final double orderParams[]) {
-//        final InstrumentUtil instrumentUtil = strategyUtil.instrumentUtil(order.getInstrument());
-//        final double pOpen = order.getOpenPrice();
-//        final double pClose = order.isLong()
-//                ? instrumentUtil.askQuote()
-//                : instrumentUtil.bidQuote();
-//        final double pRoll = rollOverNotSupported;
-//        final double pProfit = order.getProfitLossInAccountCurrency();
-//
-//        orderParams[0] = pOpen;
-//        orderParams[1] = pClose;
-//        orderParams[2] = pRoll;
-//        orderParams[3] = pProfit;
-//    }
+    private final static Logger LOG = LoggerFactory.getLogger(BrokerTrade.class);
+    private final static double rollOverNotSupported = 0.0;
+    private final ChronicleMap<Integer, OrderDetails> orderReferenceMap;
+    private final AssetHandler assetHandler;
+    private final MarketDataProvider marketDataProvider;
+    private final RestApiAdapter restApiAdapter;
+
+    public BrokerTrade(ChronicleMap<Integer, OrderDetails> orderReferenceMap, AssetHandler assetHandler, MarketDataProvider marketDataProvider, RestApiAdapter restApiAdapter) {
+        this.orderReferenceMap = orderReferenceMap;
+        this.assetHandler = assetHandler;
+        this.marketDataProvider = marketDataProvider;
+        this.restApiAdapter = restApiAdapter;
+    }
+
+    public int getTradeStatus(final int nTradeID,
+                              final double[] orderParams) {
+        OrderDetails orderDetails = orderReferenceMap.get(nTradeID);
+        if (Objects.isNull(orderDetails)) {
+            return ZorroReturnValues.UNKNOWN_ORDER_ID.getValue();
+        } else {
+            return fillTradeParams(orderParams, orderDetails);
+        }
+    }
+
+    public void checkPositionsValid() {
+        if (orderReferenceMap.size() > 0) {
+            LOG.info("Checking if {} previously opened positions are still open", orderReferenceMap.size());
+
+            orderReferenceMap.entrySet().stream()
+                .filter((entry) -> !restApiAdapter.getPositionStatus(entry.getValue().getDealId()))
+                .forEach(missingEntry -> orderReferenceMap.remove(missingEntry.getKey()));
+        }
+    }
+
+    private int fillTradeParams(double[] orderParams, OrderDetails orderDetails) {
+        ContractDetails contractDetails = marketDataProvider.getContractDetails(orderDetails.getEpic());
+        PriceDetails priceDetails = assetHandler.getAssetDetails(orderDetails.getEpic());
+
+        final double pOpen = orderDetails.getEntryLevel();
+        final double pClose = (orderDetails.getDirection() == Direction.BUY)
+            ? priceDetails.getBid()
+            : priceDetails.getAsk();
+        final double pRoll = rollOverNotSupported;
+        final double pProfit = (orderDetails.getDirection() == Direction.BUY)
+            ? calculateProfit(orderDetails, contractDetails, pClose)
+            : calculateProfit(orderDetails, contractDetails, pClose) * -1;
+        orderParams[0] = pOpen;
+        orderParams[1] = pClose;
+        orderParams[2] = pRoll;
+        orderParams[3] = pProfit;
+
+        return orderDetails.getPositionSize();
+    }
+
+    private double calculateProfit(OrderDetails orderDetails, ContractDetails contractDetails, double pClose) {
+        return (pClose - orderDetails.getEntryLevel()) / contractDetails.getBaseExchangeRate() * orderDetails.getPositionSize() * contractDetails.getPipCost() * contractDetails.getScalingFactor();
+    }
 }

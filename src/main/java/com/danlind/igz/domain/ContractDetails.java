@@ -17,12 +17,19 @@ public class ContractDetails {
     private final double baseExchangeRate;
     private final double snapshotBid;
     private final double snapshotAsk;
+    private final String expiry;
+    private final String currencyCode;
     private final int scalingFactor;
     private final MarketStatus marketStatus;
 
-    public ContractDetails(Epic epic, double pipSize, double pipCost, double lotAmount, double marginCost, double baseExchangeRate, double snapshotBid, double snapshotAsk, int scalingFactor, MarketStatus marketStatus) {
-        this.scalingFactor = scalingFactor;
+    public ContractDetails(Epic epic, double pipSize, double pipCost, double lotAmount, double marginCost, double baseExchangeRate, double snapshotBid, double snapshotAsk, String expiry, String currencyCode, int scalingFactor, MarketStatus marketStatus) {
+        Objects.requireNonNull(epic);
         Objects.requireNonNull(marketStatus);
+        Objects.requireNonNull(expiry);
+        Objects.requireNonNull(currencyCode);
+        this.currencyCode = currencyCode;
+        this.expiry = expiry;
+        this.scalingFactor = scalingFactor;
         this.snapshotBid = snapshotBid;
         this.snapshotAsk = snapshotAsk;
         this.baseExchangeRate = baseExchangeRate;
@@ -80,5 +87,13 @@ public class ContractDetails {
 
     public int getScalingFactor() {
         return scalingFactor;
+    }
+
+    public String getExpiry() {
+        return expiry;
+    }
+
+    public String getCurrencyCode() {
+        return currencyCode;
     }
 }

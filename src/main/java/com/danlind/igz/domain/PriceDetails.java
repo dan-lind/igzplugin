@@ -12,14 +12,12 @@ public class PriceDetails {
     private final Epic epic;
     private final double bid;
     private final double ask;
-    private final double volume;
 
-    public PriceDetails(Epic epic, double bid, double ask, double volume) {
+    public PriceDetails(Epic epic, double bid, double ask) {
         Objects.requireNonNull(epic);
         this.epic = epic;
         this.bid = bid;
         this.ask = ask;
-        this.volume = volume;
     }
 
     public double getAsk() {
@@ -36,9 +34,5 @@ public class PriceDetails {
 
     public Epic getEpic() {
         return epic;
-    }
-
-    public double getVolume() {
-        return volume;
     }
 }

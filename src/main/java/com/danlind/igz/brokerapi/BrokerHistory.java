@@ -6,19 +6,24 @@ import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.domain.types.Resolution;
 import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.GetPricesV3Response;
 import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.PricesItem;
-import com.danlind.igz.time.TimeConvert;
+import com.danlind.igz.misc.TimeConvert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 
 import static com.danlind.igz.domain.types.Resolution.*;
 
+@Component
 public class BrokerHistory {
 
-    private final static Logger logger = LoggerFactory.getLogger(HistoryHandler.class);
-private static final String PAGE_NUMBER = "1";
+    private final static Logger logger = LoggerFactory.getLogger(BrokerHistory.class);
+    private static final String PAGE_NUMBER = "1";
     private final RestApiAdapter restApiAdapter;
 
     @Autowired
@@ -26,7 +31,6 @@ private static final String PAGE_NUMBER = "1";
         this.restApiAdapter = restApiAdapter;
     }
 
-    //TODO: Check why not working
     public int getPriceHistory(final Epic epic,
                                final double tStart,
                                final double tEnd,
@@ -57,13 +61,13 @@ private static final String PAGE_NUMBER = "1";
             endDateTime.toString(),
             resolution.name());
 
-        //If no data was found for the specified date range, fallback and get last nTicks
         if (response.getPrices().size() == 0) {
             logger.warn("Zero ticks returned for requested date range {} - {}", startDateTime, endDateTime);
             return ZorroReturnValues.HISTORY_UNAVAILABLE.getValue();
         }
 
         int tickParamsIndex = 0;
+        Collections.reverse(response.getPrices());
         for (int i = 0; i < response.getPrices().size(); ++i) {
             final PricesItem priceItem = response.getPrices().get(i);
             tickParams[tickParamsIndex] = priceItem.getOpenPrice().getAsk().doubleValue();
@@ -90,21 +94,6 @@ private static final String PAGE_NUMBER = "1";
             MINUTE.name()).getPrices();
     }
 
-    //    DAY	1 day
-//    HOUR	1 hour
-//    HOUR_2	2 hours
-//    HOUR_3	3 hours
-//    HOUR_4	4 hours
-//    MINUTE	1 minute
-//    MINUTE_10	10 minutes
-//    MINUTE_15	15 minutes
-//    MINUTE_2	2 minutes
-//    MINUTE_3	3 minutes
-//    MINUTE_30	30 minutes
-//    MINUTE_5	5 minutes
-//    MONTH	1 month
-//    SECOND	1 second
-//    WEEK	1 week
     private Resolution checkValidResolution(int nTickMinutes) {
         switch (nTickMinutes) {
             case 1:

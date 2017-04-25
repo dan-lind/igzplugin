@@ -1,5 +1,6 @@
 package com.danlind.igz.domain;
 
+import com.danlind.igz.domain.types.DealId;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
 import com.danlind.igz.domain.types.Epic;
 
@@ -14,10 +15,10 @@ public class OrderDetails implements Serializable{
     private final double entryLevel;
     private final Direction direction;
     private final int positionSize;
-    private final String dealId;
+    private final DealId dealId;
     private static final long serialVersionUID = 1L;
 
-    public OrderDetails(Epic epic, double entryLevel, Direction direction, int positionSize, String dealId) {
+    public OrderDetails(Epic epic, double entryLevel, Direction direction, int positionSize, DealId dealId) {
         Objects.requireNonNull(epic);
         Objects.requireNonNull(direction);
         Objects.requireNonNull(dealId);
@@ -36,7 +37,7 @@ public class OrderDetails implements Serializable{
         return entryLevel;
     }
 
-    public String getDealId() {
+    public DealId getDealId() {
         return dealId;
     }
 

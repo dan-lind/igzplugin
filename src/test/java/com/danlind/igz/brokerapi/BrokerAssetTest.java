@@ -7,7 +7,7 @@ import com.danlind.igz.domain.PriceDetails;
 import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.domain.types.Volume;
 import com.danlind.igz.handler.HistoryHandler;
-import com.danlind.igz.handler.MarketHandler;
+import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.MarketStatus;
 import com.danlind.igz.misc.VolumeProvider;
 import io.reactivex.subjects.PublishSubject;
@@ -38,7 +38,7 @@ public class BrokerAssetTest {
     StreamingApiAdapter adapter;
 
     @Mock
-    MarketHandler marketHandler;
+    MarketDataProvider marketDataProvider;
 
     @Mock
     HistoryHandler historyHandler;
@@ -62,7 +62,7 @@ public class BrokerAssetTest {
 
         when(adapter.getTickObservable(testEpic)).thenReturn(priceDetailsSubject);
         when(adapter.getVolumeObservable(testEpic)).thenReturn(volumeSubject);
-        when(marketHandler.getContractDetails(testEpic)).thenReturn(contractDetails);
+        when(marketDataProvider.getContractDetails(testEpic)).thenReturn(contractDetails);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class BrokerAssetTest {
 
     @Test
     public void testGetAsset() {
-        brokerAsset = new BrokerAsset(marketHandler, volumeProvider, adapter, historyHandler);
+        brokerAsset = new BrokerAsset(marketDataProvider, volumeProvider, adapter, historyHandler);
         brokerAsset.subscribeToLighstreamerTickUpdates(testEpic);
 
         priceDetailsSubject.onNext(new PriceDetails(testEpic, 100,120));

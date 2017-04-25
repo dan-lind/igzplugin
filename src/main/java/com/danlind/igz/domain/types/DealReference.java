@@ -9,31 +9,14 @@ import java.util.Objects;
 public class DealReference implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private final String name;
+    private final String dealreference;
 
-    public DealReference(String name) {
-        Objects.requireNonNull(name);
-        this.name = name;
+    public DealReference(String dealreference) {
+        Objects.requireNonNull(dealreference);
+        this.dealreference = dealreference;
     }
 
-    public String getName() {
-        return name;
+    public String getValue() {
+        return dealreference;
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        DealReference epic = (DealReference) o;
-
-        return name.equals(epic.name);
-
-    }
-
-    @Override
-    public int hashCode() {
-        return name.hashCode();
-    }
-
 }

@@ -19,15 +19,25 @@ Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
 
 ## Configuration/Usage
 
-After extracting the dztools archive you should see a *ig.dll* and a folder *ig* in the *Plugin* directory of your Zorro installation.
+After extracting the igplugin archive you should see a *ig.dll* and a folder *ig* in the *Plugin* directory of your Zorro installation.
 
-Go to the *ig* folder and open the *Plugin.properties* file with a text editor.
+If you have not done so already, you now need to generate an API key to be able to use the IG API through Zorro.
+Refer to [IG Labs Getting Started guide](https://labs.ig.com/gettingstarted) for step by step instructions on how to do this.
 
-Here you should adapt the *.cache* path to your local JForex installation path. Be careful with this step, since it may happen that the [Dukascopy API](http://www.dukascopy.com/com.iggroup.api.client/javadoc/com/dukascopy/api/system/IClient.html#setCacheDirectory%28java.io.File%29) **will delete the .cache folder if it is corrupted**. Please make a copy of an instrument to a different location and set the path accordingly. If nothing gets deleted then you can use your complete *.cache* directory.
+Go to the *ig* folder and open the *application.properties* file with a text editor.
+
+Here you should adapt the *plugin.realApiKey* and/or *plugin.demoApiKey* to your match the values of the keys that you generated in the previos step.
 You can leave the other entries to their default values.
 
+Before you start Zorro you must also update the AssetsFix.csv with correct symbol names for the assets you want to trade.
+Refer to [The asset list section](http://zorro-trader.com/manual/en/export.htm) of the Zorro manual for details on this.
+The asset names the IG API expects is very different from the ones that Zorro uses by default. For instance the EUR/USD name is CS.D.EURUSD.CFD.IP
+You can find the correct symbol names for you favorite assets by using the [IG API Companion](https://labs.ig.com/sample-apps/api-companion/index.html)
+Log in with you user name, password and api key, then scroll down to *Market Search*, enter your search String, e.g. DAX. Now look in the response for the "epic" key, e.g  **"epic": "IX.D.DAX.IFD.IP",**
+
+
 Start Zorro and check if the *Account* drop-down-box shows *IG* as an available broker.
-Pick a script of your choice and press *Trade*. If everything is fine you should see that the login to IG has been successful.
+Enter your login details, pick a script of your choice and press *Trade*. If everything is fine you should see that the login to IG has been successful.
 
 The plugin stores its logs to *ig/logs/igzplugin.log*(the default log level is *info*). If you encounter problems open *ig/igzplugin/logback.xml* for configuring the log level. Then change the log level for the file igzplugin-appender to *debug* and save the file. A new Zorro session will now produce a more verbose *igzplugin.log* file which you can use to report errors.
 
@@ -35,8 +45,10 @@ Please use [pastebin](http://pastebin.com/) for uploading the logs.
 
 ## Remarks
 
-- This a very early release so **don't expect it to be bug free!**
-- Currently **only Forex** is supported(no Stocks, CFDs etc.)
-- You WILL need to update the AssetFix with a Symbol name. For instance the EUR/USD name is CS.D.EURUSD.CFD.IP
-- The default allowance for IG historic prices is 10 000 quotes per week. Keep this in mind. If your allowance goes to zero, you won't even be able to download quotes for the lookback period.
-- Follow discussions for this project on the [forum](http://www.opserver.de/ubb7/ubbthreads.php?ubb=showflat&Number=447697&#Post447697)
+- This is a early release of the plugin so **don't expect it to be bug free!**
+- You WILL need to update the AssetsFix with a Symbol name. For instance the EUR/USD name is CS.D.EURUSD.CFD.IP
+- The default allowance for IG historic prices is 10 000 quotes per week. If your allowance goes to zero, you won't even be able to download quotes for the lookback period. This means it is not a good idea to use IG as a source for downloading long periods of historic data.
+- 
+- Feel free to suggest improvements, post issues or suggest pull requests here on Github
+- Follow discussions for this project on the [Zorro forum](http://www.opserver.de/ubb7/ubbthreads.php?ubb=showflat&Number=447697&#Post447697)
+- Find me on Twitter, @SweetSpotDan
