@@ -9,7 +9,7 @@ Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
 
 1.) Download and install the latest **32-bit** [Java JRE](http://www.oracle.com/technetwork/java/javase/downloads). Make sure it is the 32-bit version(x86 suffix) since the plugin DLL is a 32-bit library. In case you already have a 32-bit JRE installation(check it with *java -version*) you might skip this step.
 
-2.) Add *${yourJREinstallPath}\jre\bin\* and *${yourJREinstallPath}\jre\bin\com.iggroup.api.client* to the **front** of your *Path* environment variable([here](http://www.computerhope.com/issues/ch000549.htm) is a howto).
+2.) Add *${yourJREinstallPath}\jre\bin* and *${yourJREinstallPath}\jre\bin\client* to the **front** of your *Path* environment variable([here](http://www.computerhope.com/issues/ch000549.htm) is a howto).
 
 3.) Install [Zorro](http://www.takemoneyfromtherichandgiveittothepoor.com/download.php) if not already on your machine.
 
