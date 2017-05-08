@@ -2,26 +2,20 @@ package com.danlind.igz.misc;
 
 import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
-import com.danlind.igz.config.PluginConfig;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.types.Epic;
-import com.danlind.igz.domain.types.Volume;
 import com.danlind.igz.handler.LoginHandler;
 import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.*;
-import io.reactivex.schedulers.TestScheduler;
-import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -46,7 +40,7 @@ public class MarketDataProviderTest {
     LoginHandler loginHandler;
 
     @Mock
-    PluginConfig pluginConfig;
+    PluginProperties pluginProperties;
 
     @InjectMocks
     RestApiAdapter restApiAdapter;
@@ -91,7 +85,7 @@ public class MarketDataProviderTest {
         response.setInstrument(instrument);
 
         when(restApi.getMarketDetailsV3(any(),anyString())).thenReturn(response);
-        when(pluginConfig.getRefreshMarketDataInterval()).thenReturn(50);
+        when(pluginProperties.getRefreshMarketDataInterval()).thenReturn(50);
     }
 
     @Test

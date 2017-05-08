@@ -1,6 +1,6 @@
 package com.danlind.igz.ig.api.client.rest;
 
-import com.danlind.igz.config.PluginConfig;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.types.AccountType;
 import com.danlind.igz.handler.LoginHandler;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV2.CreateSessionV2Request;
@@ -33,7 +33,7 @@ public abstract class AbstractService {
 	protected HttpClient httpClient;
 
 	@Autowired
-	PluginConfig pluginConfig;
+	PluginProperties pluginProperties;
 
 	@Autowired
 	LoginHandler loginHandler;
@@ -48,7 +48,7 @@ public abstract class AbstractService {
 	private String igApiDarkClusterQueryParameter;
 
 	public String getIGApiDomainURL() {
-		return loginHandler.getZorroAccountType() == AccountType.Real ? pluginConfig.getRealApiUrl() : pluginConfig.getDemoApiUrl();
+		return loginHandler.getZorroAccountType() == AccountType.Real ? pluginProperties.getRealApiUrl() : pluginProperties.getDemoApiUrl();
 	}
 
 	public String addIGApiLightDarkCluster(String url) {

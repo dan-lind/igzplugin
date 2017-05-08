@@ -1,10 +1,9 @@
 package com.danlind.igz;
 
-import com.danlind.igz.config.PluginConfig;
+import com.danlind.igz.config.HttpClientProperties;
+import com.danlind.igz.config.PluginProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -16,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
-@EnableConfigurationProperties(PluginConfig.class)
+@EnableConfigurationProperties( { PluginProperties.class, HttpClientProperties.class } )
 public class IgzApplication {
 
     static Logger logger = LoggerFactory.getLogger(IgzApplication.class);

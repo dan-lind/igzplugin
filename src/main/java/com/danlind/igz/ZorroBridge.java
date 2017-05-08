@@ -26,6 +26,8 @@ public class ZorroBridge {
     private AssetHandler assetHandler;
     private final LoginHandler loginHandler;
 
+    private boolean isFirstLogin = true;
+
     private final static Logger logger = LoggerFactory.getLogger(ZorroBridge.class);
 
     public ZorroBridge() {
@@ -43,6 +45,11 @@ public class ZorroBridge {
         tradeHandler = context.getBean(TradeHandler.class);
         tradeHandler.checkTradesValid();
 
+        if (!isFirstLogin) {
+            logger.debug("Zorro requested new login, resubscribing to all assets");
+            assetHandler.reconnectAll();
+        }
+
         logger.debug("Initialization complete");
     }
 
@@ -57,6 +64,7 @@ public class ZorroBridge {
         if (loginResult == ZorroReturnValues.LOGIN_OK.getValue()) {
             logger.info("Login successful");
             initComponents();
+            isFirstLogin = false;
         }
 
         return loginResult;
@@ -145,4 +153,5 @@ public class ZorroBridge {
 //        Zorro.logError("doSetOrderText for " + orderText + " called but not yet supported!");
         return ZorroReturnValues.BROKER_COMMAND_OK.getValue();
     }
+
 }

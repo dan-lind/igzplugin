@@ -29,4 +29,8 @@ public class AssetHandler {
     public PriceDetails getAssetDetails(Epic epic) {
         return brokerAsset.getPriceDetails(epic);
     }
+
+    public void reconnectAll() {
+        brokerAsset.reconnectAll();
+    }
 }

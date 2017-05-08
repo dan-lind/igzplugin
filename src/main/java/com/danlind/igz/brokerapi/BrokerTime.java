@@ -25,8 +25,8 @@ public class BrokerTime {
     private final RestApiAdapter restApiAdapter;
 
     private long currentTimeMillis = 0;
-    private long lastCheck = 0;
     private int lastTradableStatus = 0;
+    private boolean isConnected = false;
 
     @Autowired
     public BrokerTime(StreamingApiAdapter streamingApiAdapter, MarketDataProvider marketDataProvider, ThreadPoolTaskScheduler threadPoolTaskScheduler, RestApiAdapter restApiAdapter) {
@@ -50,10 +50,24 @@ public class BrokerTime {
                 error -> {
                     logger.error("Error while subscribing to Lightstreamer heartbeat", error);
                     Zorro.indicateError();
-                });
+                },
+                () -> {
+                    logger.info("Disconnected from heartbeat stream");
+                    isConnected = false;
+                }
+            );
+
+        isConnected = true;
     }
 
-    //TODO: Allow user to configure time refresh interval
+    /**
+     * Get current time from the broker
+     * Uses IGs streaming API to receive heartbeats every second
+     * If currentTimeMillis is zero it means we did not yet get the first heartbeat, so we get time from the REST API instead.
+     * This typically happens on login. If the stream is disconnected, returning 0 will cause Zorro to request a new login
+     * @param pTimeUTC
+     * @return
+     */
     public int getBrokerTime(final double pTimeUTC[]) {
         try {
             if (currentTimeMillis == 0) {
@@ -61,13 +75,11 @@ public class BrokerTime {
                 ScheduledFuture future = indicateProgress();
                 currentTimeMillis = restApiAdapter.getServerTime();
                 future.cancel(true);
+            } else if (!isConnected) {
+                return 0;
             }
-            if (lastCheck == 0) {
-                lastTradableStatus = marketDataProvider.isAnySubscribedEpicTradable();
-            } else if (lastCheck != currentTimeMillis / 30000L) {
-                lastCheck = currentTimeMillis / 30000L;
-                lastTradableStatus = marketDataProvider.isAnySubscribedEpicTradable();
-            }
+
+            lastTradableStatus = marketDataProvider.isAnySubscribedEpicTradable();
             pTimeUTC[0] = TimeConvert.getOLEDateFromMillis(currentTimeMillis);
 
             return lastTradableStatus;

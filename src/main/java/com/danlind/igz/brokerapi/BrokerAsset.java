@@ -43,6 +43,16 @@ public class BrokerAsset {
         this.historyHandler = historyHandler;
     }
 
+    /**
+     * Used to reconnect to the streaming API for all epics in case we lose the session and need to login again
+     */
+    public void reconnectAll() {
+        marketDataProvider.getAllSubscribedEpics().stream().forEach(epic -> {
+            LOG.debug("Subscribing for epic {}", epic.getName());
+            subscribeToLighstreamerTickUpdates(epic);
+        });
+    }
+
     public int subscribeToLighstreamerTickUpdates(Epic epic) {
         try {
             streamingApiAdapter.getTickObservable(epic)
@@ -53,7 +63,10 @@ public class BrokerAsset {
                         LOG.error("Error subscribing to tick observable", e);
                         Zorro.indicateError();
                     },
-                    () -> marketDataProvider.cancelSubscription()
+                    () -> {
+                        LOG.info("Received complete signal from TickObservable for epic {}", epic.getName());
+                        marketDataProvider.cancelSubscription();
+                    }
                 );
 
             streamingApiAdapter.getVolumeObservable(epic)
@@ -63,7 +76,8 @@ public class BrokerAsset {
                     e -> {
                         LOG.error("Error subscribing to volume observable", e);
                         Zorro.indicateError();
-                    }
+                    },
+                    () -> LOG.info("Received complete signal from VolumeObservable for epic {}", epic.getName())
                 );
 
             //Init volume from historic data

@@ -7,6 +7,7 @@ import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.ig.api.client.rest.AuthenticationResponseAndConversationContext;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
 import com.danlind.igz.ig.api.client.streaming.HandyTableListenerAdapter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.subjects.PublishSubject;
 import net.openhft.chronicle.map.ChronicleMap;
 import org.springframework.context.annotation.Bean;
@@ -21,7 +22,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
-public class PluginBeanConfig {
+public class PluginConfiguration {
 
     private final OrderDetails sampleOrderDetails = new OrderDetails(new Epic("IX.D.OMX.IFD.IP"), 10000, Direction.BUY, 20, new DealId("DIAAAAA9QN6L4AU"));
 
@@ -33,6 +34,11 @@ public class PluginBeanConfig {
         threadPoolTaskScheduler.setThreadNamePrefix(
                 "ThreadPoolTaskScheduler");
         return threadPoolTaskScheduler;
+    }
+
+    @Bean
+    public ObjectMapper getObjectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean

@@ -95,7 +95,6 @@ public class StreamingApiAdapter {
         LOG.info("Subscribing to Lightstreamer account updates for account: {} ", accountId);
         return Observable.create(event -> {
             try {
-                LOG.info("Adding listener");
                 listeners.add(streamingAPI.subscribeForAccountBalanceInfo(accountId, new HandyTableListenerAdapter() {
                     @Override
                     public void onUpdate(int i, String s, UpdateInfo updateInfo) {

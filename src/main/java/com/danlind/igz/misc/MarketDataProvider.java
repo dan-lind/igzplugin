@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.Set;
 
 @Component
 public class MarketDataProvider {
@@ -19,7 +20,7 @@ public class MarketDataProvider {
     private final static Logger logger = LoggerFactory.getLogger(MarketDataProvider.class);
     private final RestApiAdapter restApiAdapter;
     private final HashMap<Epic, ContractDetails> contractDetailsMap = new HashMap<>();
-    Disposable marketDetailsSubscription;
+    private Disposable marketDetailsSubscription;
 
     @Autowired
     public MarketDataProvider(RestApiAdapter restApiAdapter) {
@@ -45,6 +46,10 @@ public class MarketDataProvider {
         marketDetailsSubscription.dispose();
     }
 
+    public Set<Epic> getAllSubscribedEpics() {
+        return contractDetailsMap.keySet();
+    }
+
     public ContractDetails getContractDetails(Epic epic) {
         return contractDetailsMap.get(epic);
     }
@@ -54,9 +59,9 @@ public class MarketDataProvider {
         contractDetailsMap.put(epic, contractDetails);
 
         marketDetailsSubscription = restApiAdapter.getContractDetailsObservable(epic)
-             .subscribe(
-            updatedContractDetails -> contractDetailsMap.put(epic, updatedContractDetails)
-        );
+            .subscribe(
+                updatedContractDetails -> contractDetailsMap.put(epic, updatedContractDetails)
+            );
 
 
     }

@@ -10,8 +10,8 @@ import javax.validation.constraints.NotNull;
  * Created by danlin on 2017-03-30.
  */
 @Validated
-@ConfigurationProperties("plugin")
-public class PluginConfig {
+@ConfigurationProperties(prefix = "plugin")
+public class PluginProperties {
 
     private String realApiKey;
 

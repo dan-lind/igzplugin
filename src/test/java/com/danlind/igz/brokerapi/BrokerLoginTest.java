@@ -3,7 +3,7 @@ package com.danlind.igz.brokerapi;
 import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.adapter.StreamingApiAdapter;
-import com.danlind.igz.config.PluginConfig;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.types.AccountType;
 import com.danlind.igz.handler.LoginHandler;
 import com.danlind.igz.ig.api.client.RestAPI;
@@ -11,7 +11,6 @@ import com.danlind.igz.ig.api.client.StreamingAPI;
 import com.danlind.igz.ig.api.client.rest.AuthenticationResponseAndConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
 import com.lightstreamer.ls_client.ConnectionListener;
-import io.reactivex.subjects.PublishSubject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +47,7 @@ public class BrokerLoginTest {
     StreamingAPI streamingAPI;
 
     @Mock
-    PluginConfig pluginConfig;
+    PluginProperties pluginProperties;
 
     @Mock
     ConnectionListener connectionListener;
@@ -74,7 +73,7 @@ public class BrokerLoginTest {
 
         threadPoolTaskScheduler.initialize();
 
-        brokerLogin = new BrokerLogin(streamingApiAdapter, restApiAdapter, threadPoolTaskScheduler, pluginConfig);
+        brokerLogin = new BrokerLogin(streamingApiAdapter, restApiAdapter, threadPoolTaskScheduler, pluginProperties);
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.when(Zorro.class,"callProgress",anyInt()).thenReturn(1);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");
@@ -89,7 +88,7 @@ public class BrokerLoginTest {
 
         when(restApi.createSessionV3(any(), any())).thenReturn(context);
         when(streamingAPI.connect(anyString(), any(), anyString())).thenReturn(connectionListener);
-        when(pluginConfig.getRefreshTokenInterval()).thenReturn(30000);
+        when(pluginProperties.getRefreshTokenInterval()).thenReturn(30000);
     }
 
     @Test
@@ -113,7 +112,7 @@ public class BrokerLoginTest {
 
     @Test
     public void testRefreshToken() throws Exception {
-        when(pluginConfig.getRefreshTokenInterval()).thenReturn(1);
+        when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
         assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
         verify(restApi, atLeastOnce()).refreshSessionV1(any(), any());
     }

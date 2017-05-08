@@ -1,8 +1,7 @@
 package com.danlind.igz.adapter;
 
 import com.danlind.igz.Zorro;
-import com.danlind.igz.config.PluginConfig;
-import com.danlind.igz.config.ZorroReturnValues;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.AccountDetails;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.types.DealId;
@@ -17,13 +16,9 @@ import com.danlind.igz.ig.api.client.rest.dto.getAccountsV1.Balance;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.DealStatus;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.GetDealConfirmationV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.GetMarketDetailsV3Response;
-import com.danlind.igz.ig.api.client.rest.dto.positions.getPositionByDealIdV2.GetPositionByDealIdV2Response;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Request;
-import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Request;
-import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Response;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Request;
-import com.danlind.igz.ig.api.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Response;
 import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.GetPricesV3Response;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.AccessTokenResponse;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
@@ -36,9 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 
@@ -58,7 +51,7 @@ public class RestApiAdapter {
     private LoginHandler loginHandler;
 
     @Autowired
-    private PluginConfig pluginConfig;
+    private PluginProperties pluginProperties;
 
 
     public long getServerTime() {
@@ -67,11 +60,11 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             LOG.error("Exception getting time from server: {}", e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception getting time from server", e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -88,11 +81,11 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when getting historic prices for epic {}, error was {}", epic, e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception when getting historic prices for epic {}", epic, e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -102,11 +95,11 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when getting time zone offset info: {}", e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception when getting broker account info", e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -122,28 +115,28 @@ public class RestApiAdapter {
             } else {
                 LOG.error("Exception when getting position status for dealId {}, error was {}", dealId.getValue(), e.getResponseBodyAsString(), e);
                 Zorro.indicateError();
-                throw new RuntimeException();
+                throw e;
             }
         } catch (Exception e) {
             LOG.error("Exception when getting position status for dealId {}", dealId.getValue(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
     public Observable<ContractDetails> getContractDetailsObservable(Epic epic) {
         try {
-            return Observable.interval(pluginConfig.getRefreshMarketDataInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
+            return Observable.interval(pluginProperties.getRefreshMarketDataInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
                 .map(x -> restApi.getMarketDetailsV3(loginHandler.getConversationContext(), epic.getName()))
                 .map(this::createContractDetails);
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when getting broker account info: {}", e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception when getting broker account info", e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -154,11 +147,11 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when getting broker account info: {}", e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception when getting broker account info", e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -186,11 +179,11 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when getting info for broker account {}, error was: {}", accountId, e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception when getting info for broker account {}", accountId, e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -269,11 +262,11 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when creating session with api key {}, error was {}", apiKey, e.getResponseBodyAsString(), e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw e;
         } catch (Exception e) {
             LOG.error("Exception when creating session with api key {}", apiKey, e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -281,13 +274,17 @@ public class RestApiAdapter {
         try {
             return restApi.refreshSessionV1(contextV3, build);
         } catch (HttpClientErrorException e) {
-            LOG.error("Exception when refreshing session token, error was {}", e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw new RuntimeException();
+            if (e.getRawStatusCode() == 401 && e.getResponseBodyAsString().equals("{\"errorCode\":\"error.security.oauth-token-invalid\"}")) {
+                throw new OauthTokenInvalidException();
+            } else {
+                LOG.error("Exception when refreshing session token, error was {}", e.getResponseBodyAsString(), e);
+                Zorro.indicateError();
+                throw e;
+            }
         } catch (Exception e) {
             LOG.error("Exception when refreshing session token", e);
             Zorro.indicateError();
-            throw new RuntimeException();
+            throw new RuntimeException(e.getMessage());
         }
     }
 }

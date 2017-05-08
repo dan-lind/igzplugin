@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class Zorro {
 
-//    private final PluginConfig pluginConfig;
+//    private final PluginProperties pluginConfig;
     private int taskResult;
     private final Observable<Integer> heartBeat;
 
