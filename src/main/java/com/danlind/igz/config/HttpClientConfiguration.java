@@ -90,6 +90,7 @@ public class HttpClientConfiguration {
 
         PoolingHttpClientConnectionManager poolingConnectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         poolingConnectionManager.setMaxTotal(httpClientProperties.getMaxTotalConnections());
+        poolingConnectionManager.setDefaultMaxPerRoute(httpClientProperties.getMaxTotalConnections());
         return poolingConnectionManager;
     }
 

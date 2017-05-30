@@ -75,6 +75,7 @@ public class MarketDataProviderTest {
         instrument.setEpic(testEpic.getName());
         instrument.setMarginFactor(BigDecimal.TEN);
         instrument.setExpiry("-");
+        instrument.setContractSize("10000");
         List<CurrenciesItem> currenciesItems = new ArrayList<>();
         CurrenciesItem currenciesItem = new CurrenciesItem();
         currenciesItem.setBaseExchangeRate(0.5f);
@@ -98,6 +99,14 @@ public class MarketDataProviderTest {
         contractDetails = marketDataProvider.getContractDetails(testEpic);
         assertEquals("USD", contractDetails.getCurrencyCode());
 
+        assertEquals(20, contractDetails.getPipCost(),0);
+        assertEquals(-10, contractDetails.getMarginCost(),0);
+        assertEquals(100, contractDetails.getSnapshotBid(),0);
+        assertEquals(120, contractDetails.getSnapshotAsk(),0);
+        assertEquals("-",contractDetails.getExpiry());
+        assertEquals(10000, contractDetails.getLotAmount(),0);
+        assertEquals(testEpic,contractDetails.getEpic());
+        assertEquals(0.0001,contractDetails.getPipSize());
     }
 
     @Test

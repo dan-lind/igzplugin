@@ -69,10 +69,10 @@ public class BrokerTrade {
         orderParams[2] = pRoll;
         orderParams[3] = pProfit;
 
-        return orderDetails.getPositionSize();
+        return orderDetails.getPositionSize() * (int) contractDetails.getLotAmount();
     }
 
     private double calculateProfit(OrderDetails orderDetails, ContractDetails contractDetails, double pClose) {
-        return (pClose - orderDetails.getEntryLevel()) / contractDetails.getBaseExchangeRate() * orderDetails.getPositionSize() * contractDetails.getPipCost() * contractDetails.getScalingFactor();
+        return (pClose - orderDetails.getEntryLevel())  * orderDetails.getPositionSize() * contractDetails.getScalingFactor() * contractDetails.getPipCost();
     }
 }

@@ -12,16 +12,15 @@ import com.danlind.igz.ig.api.client.rest.ConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
 import com.danlind.igz.ig.api.client.rest.dto.session.refreshSessionV1.RefreshSessionV1Request;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class BrokerLogin {
@@ -29,24 +28,22 @@ public class BrokerLogin {
     private final static Logger logger = LoggerFactory.getLogger(BrokerLogin.class);
     private final RestApiAdapter restApiAdapter;
     private final StreamingApiAdapter streamingApiAdapter;
-    private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final PluginProperties pluginProperties;
     private AuthenticationResponseAndConversationContext authenticationContext;
     private AccountType zorroAccountType;
-    private ScheduledFuture refreshAccessTokenFuture;
+    private Disposable tokenSubscription;
 
     @Autowired
-    public BrokerLogin(StreamingApiAdapter streamingApiAdapter, RestApiAdapter restApiAdapter, ThreadPoolTaskScheduler threadPoolTaskScheduler, PluginProperties pluginProperties) {
+    public BrokerLogin(StreamingApiAdapter streamingApiAdapter, RestApiAdapter restApiAdapter, PluginProperties pluginProperties) {
         this.streamingApiAdapter = streamingApiAdapter;
         this.restApiAdapter = restApiAdapter;
-        this.threadPoolTaskScheduler = threadPoolTaskScheduler;
         this.pluginProperties = pluginProperties;
     }
 
     public int connect(String identifier, String password, String accountType) {
         this.zorroAccountType = AccountType.valueOf(accountType);
         logger.info("Connecting to IG {}-account as {}", this.zorroAccountType.name(), identifier);
-        ScheduledFuture future = indicateProgress();
+        Disposable progress = indicateProgress();
         String apiKey = this.zorroAccountType == AccountType.Real ? pluginProperties.getRealApiKey() : pluginProperties.getDemoApiKey();
 
         try {
@@ -62,16 +59,16 @@ public class BrokerLogin {
             Zorro.indicateError();
             return ZorroReturnValues.LOGIN_FAIL.getValue();
         } finally {
-            future.cancel(true);
+            progress.dispose();
         }
     }
 
     public int disconnect() {
         logger.info("Disconnecting from IG");
-        ScheduledFuture future = indicateProgress();
+        Disposable progress = indicateProgress();
         streamingApiAdapter.disconnect();
-        refreshAccessTokenFuture.cancel(true);
-        future.cancel(true);
+        tokenSubscription.dispose();
+        progress.dispose();
         return ZorroReturnValues.LOGOUT_OK.getValue();
     }
 
@@ -87,15 +84,20 @@ public class BrokerLogin {
         }
     }
 
+    //TOOD: What happens if an exception is thrown when attepting to refresh token? Is the observable cancelled?
     private void startRefreshAccessTokenScheduler() {
-        refreshAccessTokenFuture = threadPoolTaskScheduler.scheduleAtFixedRate(() -> {
-                refreshAccessToken((ConversationContextV3) authenticationContext.getConversationContext());
-            }, Date.from(Instant.now().plus(pluginProperties.getRefreshTokenInterval(), ChronoUnit.MILLIS))
-            , pluginProperties.getRefreshTokenInterval());
+        tokenSubscription = Observable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
+            .doOnError(e -> logger.debug("Error when refreshing session token, retrying"))
+            .retry()
+            .subscribe(x -> {
+                ConversationContextV3 contextV3 = (ConversationContextV3) authenticationContext.getConversationContext();
+                refreshAccessToken(contextV3);
+            });
     }
 
-    private ScheduledFuture indicateProgress() {
-        return threadPoolTaskScheduler.scheduleAtFixedRate(() -> Zorro.callProgress(1), 250);
+    private Disposable indicateProgress() {
+        return Observable.interval(250, TimeUnit.MILLISECONDS,Schedulers.io())
+            .subscribe(x -> Zorro.callProgress(1));
     }
 
     public ConversationContext getConversationContext() {

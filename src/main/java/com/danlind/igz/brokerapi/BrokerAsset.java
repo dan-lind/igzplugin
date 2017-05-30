@@ -64,6 +64,7 @@ public class BrokerAsset {
                         Zorro.indicateError();
                     },
                     () -> {
+                        //TODO: How to handle close of stream on weekends?
                         LOG.info("Received complete signal from TickObservable for epic {}", epic.getName());
                         marketDataProvider.cancelSubscription();
                     }
@@ -106,9 +107,9 @@ public class BrokerAsset {
             assetParams[1] = priceDetails.getSpread();
             assetParams[2] = volumeProvider.getAverageVolume(epic); //Volume
             assetParams[3] = contractDetails.getPipSize(); //PipSize, , size of one Pip, e.g. 0.0001 for EUR/USD
-            assetParams[4] = contractDetails.getPipCostInAccountCurrency(); //PipCost
+            assetParams[4] = contractDetails.getPipCost(); //PipCost
             assetParams[5] = contractDetails.getLotAmount(); //LotAmount
-            assetParams[6] = contractDetails.getMarginCostInAccountCurrency(); //MarginCost
+            assetParams[6] = contractDetails.getMarginCost(); //MarginCost, here leverage is returned instead
             assetParams[7] = valueNotSupported; //Rollover cost Long
             assetParams[8] = valueNotSupported; //Rollover cost Short
 //            logger.debug("Returning asset data Ask: {}, Spread: {}, Volume: {}, PipSize: {}, PipCost: {}, LotAmount: {}, MarginCost: {}",

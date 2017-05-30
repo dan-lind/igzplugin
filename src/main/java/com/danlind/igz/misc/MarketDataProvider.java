@@ -60,7 +60,10 @@ public class MarketDataProvider {
 
         marketDetailsSubscription = restApiAdapter.getContractDetailsObservable(epic)
             .subscribe(
-                updatedContractDetails -> contractDetailsMap.put(epic, updatedContractDetails)
+                updatedContractDetails -> {
+                    logger.debug("Updating contract details");
+                    contractDetailsMap.put(epic, updatedContractDetails);
+                }
             );
 
 

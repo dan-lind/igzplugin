@@ -2,6 +2,7 @@ package com.danlind.igz.brokerapi;
 
 import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
+import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
 import com.danlind.igz.domain.types.Epic;
@@ -10,9 +11,12 @@ import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.DealStatus;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.GetDealConfirmationV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.PositionStatus;
+import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.MarketStatus;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
+import com.danlind.igz.misc.MarketDataProvider;
 import net.openhft.chronicle.map.ChronicleMap;
+import org.apache.http.annotation.Contract;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,6 +51,9 @@ public class BrokerSellTest {
     @Mock
     ChronicleMap<Integer, OrderDetails> orderReferenceMap;
 
+    @Mock
+    MarketDataProvider marketDataProvider;
+
     OrderDetails orderDetails;
 
     @InjectMocks
@@ -63,7 +70,7 @@ public class BrokerSellTest {
     @Before
     public void setUp() throws Exception {
         atomicInteger = new AtomicInteger(1001);
-        brokerSell = new BrokerSell(restApiAdapter, orderReferenceMap, atomicInteger);
+        brokerSell = new BrokerSell(restApiAdapter, orderReferenceMap, atomicInteger, marketDataProvider);
 
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");
@@ -85,9 +92,12 @@ public class BrokerSellTest {
         CloseOTCPositionV1Response response = new CloseOTCPositionV1Response();
         response.setDealReference("TestDealReference");
 
+        ContractDetails contractDetails = new ContractDetails(testEpic, 2, 3, 4, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
+
         when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
         when(orderReferenceMap.get(1000)).thenReturn(orderDetails);
         when(restApi.closeOTCPositionV1(any(), any())).thenReturn(response);
+        when(marketDataProvider.getContractDetails(any())).thenReturn(contractDetails);
     }
 
     @Test

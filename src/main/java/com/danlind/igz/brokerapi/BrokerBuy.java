@@ -1,5 +1,6 @@
 package com.danlind.igz.brokerapi;
 
+import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.ContractDetails;
@@ -11,6 +12,7 @@ import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.GetDealConfi
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Request;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.OrderType;
+import com.danlind.igz.misc.RetryWithDelay;
 import net.openhft.chronicle.map.ChronicleMap;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -18,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
@@ -43,15 +46,20 @@ public class BrokerBuy {
         CreateOTCPositionV2Request createPositionRequest = createPositionRequest(epic, numberOfContracts, stopDistance);
 
         return restApiAdapter.createPosition(createPositionRequest)
+            .doOnNext(dealReference -> LOG.debug("Got dealReference {} when attempting to open position", dealReference.getValue()))
+            .delay(500, TimeUnit.MILLISECONDS)
             .flatMap(dealReference -> restApiAdapter.getDealConfirmationObservable(dealReference.getValue())
+                .retryWhen(new RetryWithDelay(3, 1500))
                 .map(dealConfirmationResponse -> buyConfirmationHandler(dealConfirmationResponse, createPositionRequest.getDirection(), tradeParams))
             )
+            .doOnError(e -> Zorro.indicateError())
             .onErrorReturn(e -> ZorroReturnValues.BROKER_BUY_FAIL.getValue())
             .blockingSingle();
     }
 
     private int buyConfirmationHandler(GetDealConfirmationV1Response dealConfirmationResponse, Direction direction, double[] tradeParams) {
         int orderId = atomicInteger.getAndIncrement();
+        LOG.debug("Storing open position with orderId {} and dealId {}", orderId, dealConfirmationResponse.getDealId());
         orderReferenceMap.put(orderId, new OrderDetails(new Epic(dealConfirmationResponse.getEpic()), dealConfirmationResponse.getLevel(), direction, dealConfirmationResponse.getSize().intValue(), new DealId(dealConfirmationResponse.getDealId())));
         tradeParams[2] = dealConfirmationResponse.getLevel();
         return orderId;
@@ -65,7 +73,7 @@ public class BrokerBuy {
         createPositionRequest.setExpiry(contractDetails.getExpiry());
         createPositionRequest.setOrderType(OrderType.MARKET);
         createPositionRequest.setCurrencyCode(contractDetails.getCurrencyCode());
-        createPositionRequest.setSize(BigDecimal.valueOf(Math.abs(numberOfContracts)));
+        createPositionRequest.setSize(BigDecimal.valueOf(Math.abs(numberOfContracts/contractDetails.getLotAmount())));
         createPositionRequest.setGuaranteedStop(false);
         createPositionRequest.setForceOpen(true);
 
@@ -75,9 +83,9 @@ public class BrokerBuy {
             createPositionRequest.setDirection(Direction.SELL);
         }
 
+        //TODO: Check if we should really use scalingFactor here
         if (stopDistance != 0) {
-            int scalingFactor = contractDetails.getScalingFactor();
-            createPositionRequest.setStopDistance(BigDecimal.valueOf(stopDistance * scalingFactor));
+            createPositionRequest.setStopDistance(BigDecimal.valueOf(stopDistance));
         }
 
         LOG.info(">>> Creating long position epic={}, \ndirection={}, \nexpiry={}, \nsize={}, \norderType={}, \ncurrency={}, \nstop loss distance={}",

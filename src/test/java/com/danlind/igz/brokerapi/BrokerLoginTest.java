@@ -20,13 +20,14 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.concurrent.ScheduledFuture;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -65,15 +66,7 @@ public class BrokerLoginTest {
 
     @Before
     public void setUp() throws Exception {
-        ThreadPoolTaskScheduler threadPoolTaskScheduler
-            = new ThreadPoolTaskScheduler();
-        threadPoolTaskScheduler.setPoolSize(5);
-        threadPoolTaskScheduler.setThreadNamePrefix(
-            "ThreadPoolTaskScheduler");
-
-        threadPoolTaskScheduler.initialize();
-
-        brokerLogin = new BrokerLogin(streamingApiAdapter, restApiAdapter, threadPoolTaskScheduler, pluginProperties);
+        brokerLogin = new BrokerLogin(streamingApiAdapter, restApiAdapter, pluginProperties);
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.when(Zorro.class,"callProgress",anyInt()).thenReturn(1);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");

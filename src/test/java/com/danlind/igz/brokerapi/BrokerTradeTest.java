@@ -91,17 +91,17 @@ public class BrokerTradeTest {
         getDealConfirmationV1Response.setDealId(dealId.getValue());
         getDealConfirmationV1Response.setEpic(testEpic.getName());
         getDealConfirmationV1Response.setLevel(105F);
-        getDealConfirmationV1Response.setSize(100F);
+        getDealConfirmationV1Response.setSize(1F);
         getDealConfirmationV1Response.setDealStatus(DealStatus.ACCEPTED);
 
         orderParams = new double[4];
 
-        longOrderDetails = new OrderDetails(testEpic, 105, Direction.BUY, 100, dealId);
-        shortOrderDetails = new OrderDetails(testEpic, 105, Direction.SELL, 100, otherDealId);
+        longOrderDetails = new OrderDetails(testEpic, 1.11281, Direction.BUY, 2, dealId);
+        shortOrderDetails = new OrderDetails(testEpic, 1.11287, Direction.SELL, 2, otherDealId);
         orderReferenceMap.put(1000, longOrderDetails);
         orderReferenceMap.put(1001, shortOrderDetails);
 
-        PriceDetails priceDetails = new PriceDetails(testEpic, 100, 120);
+        PriceDetails priceDetails = new PriceDetails(testEpic, 1.11271, 1.11277);
 
         CloseOTCPositionV1Response response = new CloseOTCPositionV1Response();
         response.setDealReference("TestDealReference");
@@ -109,27 +109,27 @@ public class BrokerTradeTest {
         when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
         when(assetHandler.getAssetDetails(testEpic)).thenReturn(priceDetails);
 
-        contractDetails = new ContractDetails(testEpic, 2, 3, 4, 5, 0.5, 10, 12, "-", "EUR", 2, MarketStatus.TRADEABLE);
+        contractDetails = new ContractDetails(testEpic, 0.0001, 10, 10000, 0.5, 10, 12, "-", "EUR", 100, MarketStatus.TRADEABLE);
         when(marketDataProvider.getContractDetails(testEpic)).thenReturn(contractDetails);
 
     }
 
     @Test
     public void testGetTradeStatusExistingLong() throws Exception {
-        assertEquals(100, brokerTrade.getTradeStatus(1000, orderParams));
-        assertEquals(105,orderParams[0], 0);
-        assertEquals(100,orderParams[1], 0);
+        assertEquals(20000, brokerTrade.getTradeStatus(1000, orderParams));
+        assertEquals(1.11281,orderParams[0], 0);
+        assertEquals(1.11271,orderParams[1], 0);
         assertEquals(0,orderParams[2], 0);
-        assertEquals(-6000,orderParams[3], 0);
+        assertEquals(-0.2,orderParams[3], 0.0005);
     }
 
     @Test
     public void testGetTradeStatusExistingShort() throws Exception {
-        assertEquals(100, brokerTrade.getTradeStatus(1001, orderParams));
-        assertEquals(105,orderParams[0], 0);
-        assertEquals(120,orderParams[1], 0);
+        assertEquals(20000, brokerTrade.getTradeStatus(1001, orderParams));
+        assertEquals(1.11287,orderParams[0], 0);
+        assertEquals(1.11277,orderParams[1], 0);
         assertEquals(0,orderParams[2], 0);
-        assertEquals(-18000,orderParams[3], 0);
+        assertEquals(0.2,orderParams[3], 0.005);
     }
 
     @Test

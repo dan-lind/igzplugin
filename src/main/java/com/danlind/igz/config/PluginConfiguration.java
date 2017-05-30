@@ -27,16 +27,6 @@ public class PluginConfiguration {
     private final OrderDetails sampleOrderDetails = new OrderDetails(new Epic("IX.D.OMX.IFD.IP"), 10000, Direction.BUY, 20, new DealId("DIAAAAA9QN6L4AU"));
 
     @Bean
-    public ThreadPoolTaskScheduler threadPoolTaskScheduler(){
-        ThreadPoolTaskScheduler threadPoolTaskScheduler
-                = new ThreadPoolTaskScheduler();
-        threadPoolTaskScheduler.setPoolSize(5);
-        threadPoolTaskScheduler.setThreadNamePrefix(
-                "ThreadPoolTaskScheduler");
-        return threadPoolTaskScheduler;
-    }
-
-    @Bean
     public ObjectMapper getObjectMapper() {
         return new ObjectMapper();
     }

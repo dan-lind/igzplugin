@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,6 +32,7 @@ public class BrokerHistory {
         this.restApiAdapter = restApiAdapter;
     }
 
+
     public int getPriceHistory(final Epic epic,
                                final double tStart,
                                final double tEnd,
@@ -38,7 +40,6 @@ public class BrokerHistory {
                                final int nTicks,
                                final double tickParams[]) {
 
-        logger.debug("Finding resolution {}", nTickMinutes);
         Resolution resolution = checkValidResolution(nTickMinutes);
         if (resolution != Resolution.INVALID) {
             return fillParamsForValidResolution(epic, tStart, tEnd, nTicks, tickParams, resolution);
@@ -51,8 +52,10 @@ public class BrokerHistory {
     private int fillParamsForValidResolution(Epic epic, double tStart, double tEnd, int nTicks, double[] tickParams, Resolution resolution) {
         int accountZoneOffset = restApiAdapter.getTimeZoneOffset();
         LocalDateTime endDateTime = TimeConvert.localDateTimeFromOLEDate(tEnd, accountZoneOffset);
-        LocalDateTime startDateTime = TimeConvert.localDateTimeFromOLEDate(tStart, accountZoneOffset);
-        logger.debug("Getting prices for {} - {}, max ticks {}, resolution {}", startDateTime, endDateTime, nTicks, resolution.name());
+//        LocalDateTime startDateTime = TimeConvert.localDateTimeFromOLEDate(tStart, accountZoneOffset);
+//        startDateTime = alignStartDateToResolutionLimit(startDateTime, endDateTime, resolution);
+        LocalDateTime startDateTime = endDateTime.minusMinutes(nTicks * resolution.getValue());
+        logger.debug("Getting prices for epic {}, date range {} - {}, max ticks {}, resolution {}", epic.getName(), startDateTime, endDateTime, nTicks, resolution.name());
         GetPricesV3Response response = restApiAdapter.getHistoricPrices(PAGE_NUMBER,
             String.valueOf(nTicks),
             String.valueOf(nTicks),
@@ -65,6 +68,10 @@ public class BrokerHistory {
             logger.warn("Zero ticks returned for requested date range {} - {}", startDateTime, endDateTime);
             return ZorroReturnValues.HISTORY_UNAVAILABLE.getValue();
         }
+
+//        response.getPrices().forEach(priceItem -> {
+//            logger.debug(LocalDateTime.parse(priceItem.getSnapshotTimeUTC()).toString());
+//        });
 
         int tickParamsIndex = 0;
         Collections.reverse(response.getPrices());
@@ -92,6 +99,67 @@ public class BrokerHistory {
             null,
             null,
             MINUTE.name()).getPrices();
+    }
+
+    /*
+    These are indications of maximum number of days of historic data available for different time resolutions
+    This method makes sure we don't look further back than these dates to avoid io errors from IGs API.
+        Resolution	Days
+        1 Min	40
+        2 Min	40
+        3 Min	40
+        5 Min	360
+        10 Min	360
+        15 Min	360
+        30 Min	360
+        1 Hour	360
+        2 Hour	360
+        3 Hour	360
+        4 Hour	360
+        1 Day	15 years
+    */
+    private LocalDateTime alignStartDateToResolutionLimit(LocalDateTime startTime, LocalDateTime endTime, Resolution resolution) {
+        switch (resolution) {
+            case MINUTE:
+            case MINUTE_2:
+            case MINUTE_3: {
+                if (ChronoUnit.DAYS.between(startTime, endTime) > 40) {
+                    LocalDateTime newStartDate = endTime.minusDays(40);
+                    logger.info("Time resolution {} exceeded maxumum of 40 days, adjusting start date to {}", resolution, newStartDate);
+                    return newStartDate;
+                } else {
+                    return endTime;
+                }
+            }
+            case MINUTE_5:
+            case MINUTE_10:
+            case MINUTE_15:
+            case MINUTE_30:
+            case HOUR:
+            case HOUR_2:
+            case HOUR_3:
+            case HOUR_4: {
+                if (ChronoUnit.DAYS.between(startTime, endTime) > 360) {
+                    LocalDateTime newStartDate = endTime.minusDays(360);
+                    logger.info("Time resolution {} exceeded maxumum of 360 days, adjusting start date to {}", resolution, newStartDate);
+                    return newStartDate;
+                } else {
+                    return endTime;
+                }
+            }
+            case DAY: {
+                if (ChronoUnit.YEARS.between(startTime, endTime) > 15) {
+                    LocalDateTime newStartDate = endTime.minusYears(15);
+                    logger.info("Time resolution {} exceeded maxumum of 15 years, adjusting start date to {}", resolution, newStartDate);
+                    return newStartDate;
+                } else {
+                    return endTime;
+                }
+            }
+            default: {
+                throw new RuntimeException("Invalid resolution passed to function, this should never occur");
+            }
+        }
     }
 
     private Resolution checkValidResolution(int nTickMinutes) {

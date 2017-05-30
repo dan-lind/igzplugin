@@ -5,14 +5,15 @@ import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.adapter.StreamingApiAdapter;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.misc.TimeConvert;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class BrokerTime {
@@ -21,7 +22,6 @@ public class BrokerTime {
 
     private final StreamingApiAdapter streamingApiAdapter;
     private final MarketDataProvider marketDataProvider;
-    private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final RestApiAdapter restApiAdapter;
 
     private long currentTimeMillis = 0;
@@ -29,10 +29,9 @@ public class BrokerTime {
     private boolean isConnected = false;
 
     @Autowired
-    public BrokerTime(StreamingApiAdapter streamingApiAdapter, MarketDataProvider marketDataProvider, ThreadPoolTaskScheduler threadPoolTaskScheduler, RestApiAdapter restApiAdapter) {
+    public BrokerTime(StreamingApiAdapter streamingApiAdapter, MarketDataProvider marketDataProvider, RestApiAdapter restApiAdapter) {
         this.streamingApiAdapter = streamingApiAdapter;
         this.marketDataProvider = marketDataProvider;
-        this.threadPoolTaskScheduler = threadPoolTaskScheduler;
         this.restApiAdapter = restApiAdapter;
     }
 
@@ -72,9 +71,9 @@ public class BrokerTime {
         try {
             if (currentTimeMillis == 0) {
                 logger.info("Getting initial time from restAPI");
-                ScheduledFuture future = indicateProgress();
+                Disposable disposable = indicateProgress();
                 currentTimeMillis = restApiAdapter.getServerTime();
-                future.cancel(true);
+                disposable.dispose();
             } else if (!isConnected) {
                 return 0;
             }
@@ -89,8 +88,9 @@ public class BrokerTime {
         }
     }
 
-    private ScheduledFuture indicateProgress() {
-        return threadPoolTaskScheduler.scheduleAtFixedRate(() -> Zorro.callProgress(1), 250);
+    private Disposable indicateProgress() {
+        return Observable.interval(250, TimeUnit.MILLISECONDS, Schedulers.io())
+            .subscribe(x -> Zorro.callProgress(1));
     }
 
 

@@ -158,10 +158,9 @@ public class RestApiAdapter {
     private ContractDetails createContractDetails(GetMarketDetailsV3Response marketDetails) {
         return new ContractDetails(new Epic(marketDetails.getInstrument().getEpic()),
             (1d / marketDetails.getSnapshot().getScalingFactor()),
-            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip()),
-            marketDetails.getDealingRules().getMinDealSize().getValue(),
-            marketDetails.getInstrument().getMarginFactor().doubleValue(),
-            marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
+            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip()) / marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
+            Double.parseDouble(marketDetails.getInstrument().getContractSize()),
+            100 / marketDetails.getInstrument().getMarginFactor().doubleValue() * -1,
             marketDetails.getSnapshot().getBid().doubleValue(),
             marketDetails.getSnapshot().getOffer().doubleValue(),
             marketDetails.getInstrument().getExpiry(),
@@ -205,11 +204,11 @@ public class RestApiAdapter {
         try {
             return Observable.just(new DealReference(restApi.closeOTCPositionV1(loginHandler.getConversationContext(), closePositionRequest).getDealReference()));
         } catch (HttpClientErrorException e) {
-            LOG.error("Exception when closing position for epic {} with deal id {}, error was {}", closePositionRequest.getEpic(), closePositionRequest.getDealId(), e.getResponseBodyAsString(), e);
+            LOG.error("Exception when closing position for deal id {}, error was {}", closePositionRequest.getDealId(), e.getResponseBodyAsString(), e);
             Zorro.indicateError();
             return Observable.error(e);
         } catch (Exception e) {
-            LOG.error("Exception when closing position for epic {} with deal id {}, ", closePositionRequest.getEpic(), closePositionRequest.getDealId(), e);
+            LOG.error("Exception when closing position for deal id {}", closePositionRequest.getDealId(), e);
             Zorro.indicateError();
             return Observable.error(e);
         }
@@ -230,26 +229,29 @@ public class RestApiAdapter {
     }
 
     public Observable<GetDealConfirmationV1Response> getDealConfirmationObservable(String dealReference) {
-        try {
-            return Observable.just(restApi.getDealConfirmationV1(loginHandler.getConversationContext(), dealReference))
-                .flatMap(dealConfirmation -> {
-                    if (dealConfirmation.getDealStatus() == DealStatus.ACCEPTED) {
-                        return Observable.just(dealConfirmation);
-                    } else {
-                        LOG.warn("Order with deal id {} was rejected with reason code {}", dealConfirmation.getDealId(), dealConfirmation.getReason());
-                        Zorro.indicateError();
-                        return Observable.error(new RuntimeException());
-                    }
-                });
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when getting deal confirmation for deal reference {}, error was {}", dealReference, e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        } catch (Exception e) {
-            LOG.error("Exception when getting deal confirmation for deal reference {}", dealReference, e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        }
+        return Observable.defer(() -> {
+            try {
+                LOG.debug("Attempting to get confirmation for dealReference {}", dealReference);
+
+                return Observable.just(restApi.getDealConfirmationV1(loginHandler.getConversationContext(), dealReference))
+                    .flatMap(dealConfirmation -> {
+                        if (dealConfirmation.getDealStatus() == DealStatus.ACCEPTED) {
+                            LOG.debug("Deal accepted for dealReference {}", dealReference);
+                            return Observable.just(dealConfirmation);
+                        } else {
+                            LOG.warn("Order with deal id {} was rejected with reason code {}", dealConfirmation.getDealId(), dealConfirmation.getReason());
+                            Zorro.indicateError();
+                            return Observable.error(new RuntimeException());
+                        }
+                    });
+            } catch (HttpClientErrorException e) {
+                LOG.error("Exception when getting deal confirmation for deal reference {}, error was {}", dealReference, e.getResponseBodyAsString(), e);
+                return Observable.error(e);
+            } catch (Exception e) {
+                LOG.error("Exception when getting deal confirmation for deal reference {}", dealReference, e);
+                return Observable.error(e);
+            }
+        });
     }
 
     public String getAccountId() {
@@ -276,6 +278,10 @@ public class RestApiAdapter {
         } catch (HttpClientErrorException e) {
             if (e.getRawStatusCode() == 401 && e.getResponseBodyAsString().equals("{\"errorCode\":\"error.security.oauth-token-invalid\"}")) {
                 throw new OauthTokenInvalidException();
+            } else if (e.getRawStatusCode() == 503) {
+                LOG.error("IG Server is unavailable, will retry again shortly");
+                Zorro.indicateError();
+                throw e;
             } else {
                 LOG.error("Exception when refreshing session token, error was {}", e.getResponseBodyAsString(), e);
                 Zorro.indicateError();

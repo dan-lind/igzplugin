@@ -57,7 +57,7 @@ public class BrokerAssetTest {
         testEpic = new Epic("TestEpic");
         volumeSubject = PublishSubject.create();
         priceDetailsSubject = PublishSubject.create();
-        contractDetails = new ContractDetails(testEpic, 2, 3, 4, 5, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
+        contractDetails = new ContractDetails(testEpic, 2, 3, 4, -200, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
         volumeProvider = new VolumeProvider();
 
         when(adapter.getTickObservable(testEpic)).thenReturn(priceDetailsSubject);
@@ -103,9 +103,9 @@ public class BrokerAssetTest {
         assertEquals(20, assetParams[1], 0);  //Spread
         assertEquals(10, assetParams[2], 0);  //Volume
         assertEquals(2, assetParams[3], 0);  //Pip Size
-        assertEquals(6, assetParams[4], 0);  //Pip Cost in account currency
+        assertEquals(3, assetParams[4], 0);  //Pip Cost
         assertEquals(4, assetParams[5], 0);  //Lot Amount
-        assertEquals(10, assetParams[6], 0);  //Margin Cost
+        assertEquals(-200, assetParams[6], 0);  //Margin Cost, returns leverage
         assertEquals(0, assetParams[7], 0);  //Roll over
         assertEquals(0, assetParams[8], 0);  //Roll over
     }

@@ -6,10 +6,10 @@ import com.danlind.igz.adapter.StreamingApiAdapter;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.handler.LoginHandler;
-import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.MarketStatus;
 import com.danlind.igz.ig.api.client.rest.dto.session.encryptionKey.getEncryptionKeySessionV1.GetEncryptionKeySessionV1Response;
+import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.misc.TimeConvert;
 import io.reactivex.subjects.PublishSubject;
 import org.junit.Before;
@@ -22,7 +22,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -59,21 +58,13 @@ public class BrokerTimeTest {
 
     @Before
     public void setUp() throws Exception {
-        ThreadPoolTaskScheduler threadPoolTaskScheduler
-            = new ThreadPoolTaskScheduler();
-        threadPoolTaskScheduler.setPoolSize(5);
-        threadPoolTaskScheduler.setThreadNamePrefix(
-            "ThreadPoolTaskScheduler");
-
-        threadPoolTaskScheduler.initialize();
-
         Epic testEpic = new Epic("TestEpic");
-        ContractDetails contractDetails = new ContractDetails(testEpic, 2, 3, 4, 5, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
+        ContractDetails contractDetails = new ContractDetails(testEpic, 2, 3, 4, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
 
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");
 
-        brokerTime = new BrokerTime(streamingApiAdapter, marketDataProvider,threadPoolTaskScheduler,restApiAdapter);
+        brokerTime = new BrokerTime(streamingApiAdapter, marketDataProvider,restApiAdapter);
 
         heartbeatSubject = PublishSubject.create();
 

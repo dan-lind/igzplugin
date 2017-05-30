@@ -65,7 +65,7 @@ public class BrokerBuyTest {
     Epic testEpic = new Epic("TestEpic");
     double[] tradeParams;
     private GetDealConfirmationV1Response getDealConfirmationV1Response = new GetDealConfirmationV1Response();
-//
+
     @Before
     public void setUp() throws Exception {
         brokerBuy = new BrokerBuy(restApiAdapter, marketDataProvider, orderReferenceMap, atomicInteger);
@@ -90,7 +90,7 @@ public class BrokerBuyTest {
         when(orderReferenceMap.get(any())).thenReturn(orderDetails);
         when(restApi.createOTCPositionV2(any(), any())).thenReturn(response);
 
-        contractDetails = new ContractDetails(testEpic, 2, 3, 4, 5, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
+        contractDetails = new ContractDetails(testEpic, 2, 3, 4, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
         when(marketDataProvider.getContractDetails(testEpic)).thenReturn(contractDetails);
         getDealConfirmationV1Response.setDealStatus(DealStatus.ACCEPTED);
     }
