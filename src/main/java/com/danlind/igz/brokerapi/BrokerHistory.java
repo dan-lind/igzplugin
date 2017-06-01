@@ -7,6 +7,7 @@ import com.danlind.igz.domain.types.Resolution;
 import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.GetPricesV3Response;
 import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.danlind.igz.misc.TimeConvert;
+import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,8 @@ public class BrokerHistory {
     private final static Logger logger = LoggerFactory.getLogger(BrokerHistory.class);
     private static final String PAGE_NUMBER = "1";
     private final RestApiAdapter restApiAdapter;
+    private int accountZoneOffset;
+    private Disposable timeZoneOffsetSubscription;
 
     @Autowired
     public BrokerHistory(RestApiAdapter restApiAdapter) {
@@ -49,8 +52,21 @@ public class BrokerHistory {
         }
     }
 
+    public void getTimeZoneOffsetObservable() {
+        timeZoneOffsetSubscription = restApiAdapter.getTimeZoneOffset()
+            .subscribe(
+                timeZone -> {
+                    logger.debug("Updating contract details");
+                    accountZoneOffset = timeZone;
+                }
+            );
+    }
+
+    public void cancelSubscription() {
+        timeZoneOffsetSubscription.dispose();
+    }
+
     private int fillParamsForValidResolution(Epic epic, double tStart, double tEnd, int nTicks, double[] tickParams, Resolution resolution) {
-        int accountZoneOffset = restApiAdapter.getTimeZoneOffset();
         LocalDateTime endDateTime = TimeConvert.localDateTimeFromOLEDate(tEnd, accountZoneOffset);
 //        LocalDateTime startDateTime = TimeConvert.localDateTimeFromOLEDate(tStart, accountZoneOffset);
 //        startDateTime = alignStartDateToResolutionLimit(startDateTime, endDateTime, resolution);

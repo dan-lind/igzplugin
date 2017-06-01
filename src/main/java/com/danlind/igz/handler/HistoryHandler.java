@@ -35,4 +35,12 @@ public class HistoryHandler {
                                             final int ticks) {
         return brokerHistory.getPriceHistory(epic, ticks);
     }
+
+    public void getTimeZoneOffsetObservable() {
+        brokerHistory.getTimeZoneOffsetObservable();
+    }
+
+    public void cancelSubscription() {
+        brokerHistory.cancelSubscription();
+    }
 }

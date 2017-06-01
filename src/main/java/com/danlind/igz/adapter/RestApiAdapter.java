@@ -89,9 +89,11 @@ public class RestApiAdapter {
         }
     }
 
-    public int getTimeZoneOffset() {
+    public Observable<Integer> getTimeZoneOffset() {
         try {
-            return restApi.getSessionV1(loginHandler.getConversationContext(), false).getBody().getTimezoneOffset();
+            LOG.debug("Getting TimeZoneOffset");
+            return Observable.interval(0, 1, TimeUnit.HOURS, Schedulers.io())
+            .map(x -> restApi.getSessionV1(loginHandler.getConversationContext(), false).getBody().getTimezoneOffset());
         } catch (HttpClientErrorException e) {
             LOG.error("Exception when getting time zone offset info: {}", e.getResponseBodyAsString(), e);
             Zorro.indicateError();
@@ -158,7 +160,7 @@ public class RestApiAdapter {
     private ContractDetails createContractDetails(GetMarketDetailsV3Response marketDetails) {
         return new ContractDetails(new Epic(marketDetails.getInstrument().getEpic()),
             (1d / marketDetails.getSnapshot().getScalingFactor()),
-            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip()) / marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
+            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip().replace(",","")) / marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
             Double.parseDouble(marketDetails.getInstrument().getContractSize()),
             100 / marketDetails.getInstrument().getMarginFactor().doubleValue() * -1,
             marketDetails.getSnapshot().getBid().doubleValue(),

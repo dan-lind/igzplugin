@@ -67,6 +67,7 @@ public class BrokerAsset {
                         //TODO: How to handle close of stream on weekends?
                         LOG.info("Received complete signal from TickObservable for epic {}", epic.getName());
                         marketDataProvider.cancelSubscription();
+                        historyHandler.cancelSubscription();
                     }
                 );
 
@@ -80,6 +81,8 @@ public class BrokerAsset {
                     },
                     () -> LOG.info("Received complete signal from VolumeObservable for epic {}", epic.getName())
                 );
+
+            historyHandler.getTimeZoneOffsetObservable();
 
             //Init volume from historic data
             List<PricesItem> pricesItems = historyHandler.getPriceHistory(epic, VOLUME_WINDOW_LENGTH);
