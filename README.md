@@ -47,6 +47,7 @@ Please use [pastebin](http://pastebin.com/) for uploading the logs.
 
 - This is a early release of the plugin so **don't expect it to be bug free!**
 - You WILL need to update the AssetsFix with Symbol names. For instance the EUR/USD name is CS.D.EURUSD.CFD.IP
+- Prefer running your strategies with [Weekend = 7](http://www.zorro-trader.com/manual/en/weekend.htm) as the broker API tends to crash when IGs server goes offline for the weekend
 - The default allowance for IG historic prices is 10 000 quotes per week. If your allowance goes to zero, you won't even be able to download quotes for the lookback period. This means it is not a good idea to use IG as a source for downloading long periods of historic data.
 - Keep your historic date as up to date as possible and prefer using the PRELOAD-flag in you scripts. Even just filling the lookback will get rate limited if you have many assets and are too far behind on historic data.
 - The default quotas for IG Streaming API connections is 40 concurrent connections. The plugin currently uses 2 streams per asset, which means so can at a maximum trade 20 assets at the same time. Contact IG if you need to raise your limit.

@@ -12,6 +12,7 @@ import com.danlind.igz.ig.api.client.rest.ConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
 import com.danlind.igz.ig.api.client.rest.dto.session.refreshSessionV1.RefreshSessionV1Request;
+import com.danlind.igz.misc.RetryWithDelay;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -88,15 +89,20 @@ public class BrokerLogin {
     private void startRefreshAccessTokenScheduler() {
         tokenSubscription = Observable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
             .doOnError(e -> logger.debug("Error when refreshing session token, retrying"))
-            .retry()
+            .retryWhen(new RetryWithDelay(60, 5000))
             .subscribe(x -> {
-                ConversationContextV3 contextV3 = (ConversationContextV3) authenticationContext.getConversationContext();
-                refreshAccessToken(contextV3);
-            });
+                    ConversationContextV3 contextV3 = (ConversationContextV3) authenticationContext.getConversationContext();
+                    refreshAccessToken(contextV3);
+                },
+                error -> {
+                    logger.error("Exception after retrying refreshing session token, disconnecting");
+                    disconnect();
+                }
+            );
     }
 
     private Disposable indicateProgress() {
-        return Observable.interval(250, TimeUnit.MILLISECONDS,Schedulers.io())
+        return Observable.interval(250, TimeUnit.MILLISECONDS, Schedulers.io())
             .subscribe(x -> Zorro.callProgress(1));
     }
 
