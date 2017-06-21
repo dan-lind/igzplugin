@@ -7,12 +7,17 @@ import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
 import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.handler.LoginHandler;
+import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.Reason;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.DealStatus;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.GetDealConfirmationV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.MarketStatus;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Response;
+import io.reactivex.Scheduler;
+import io.reactivex.functions.Function;
+import io.reactivex.plugins.RxJavaPlugins;
+import io.reactivex.schedulers.Schedulers;
 import net.openhft.chronicle.map.ChronicleMap;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.nio.charset.Charset;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -93,6 +99,7 @@ public class BrokerBuyTest {
         contractDetails = new ContractDetails(testEpic, 2, 3, 4, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
         when(marketDataProvider.getContractDetails(testEpic)).thenReturn(contractDetails);
         getDealConfirmationV1Response.setDealStatus(DealStatus.ACCEPTED);
+        getDealConfirmationV1Response.setReason(Reason.ATTACHED_ORDER_LEVEL_ERROR);
     }
 
     @Test

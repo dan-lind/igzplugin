@@ -60,13 +60,13 @@ public class BrokerAsset {
                 .subscribe(
                     priceDetails -> priceDataMap.put(priceDetails.getEpic(), priceDetails),
                     e -> {
-                        LOG.error("Error subscribing to tick observable", e);
+                        LOG.error("Error subscribing to tick observable for {}",epic.getName(), e);
                         Zorro.indicateError();
                     },
                     () -> {
-                        //TODO: How to handle close of stream on weekends?
+                        //TODO: How to handle close of stream on weekends? (Weekend = 7 is the obvious option for now)
                         LOG.info("Received complete signal from TickObservable for epic {}", epic.getName());
-                        marketDataProvider.cancelSubscription();
+                        marketDataProvider.cancelSubscription(epic);
                         historyHandler.cancelSubscription();
                     }
                 );
@@ -76,7 +76,7 @@ public class BrokerAsset {
                 .subscribe(
                     volume -> volumeProvider.updateRollingVolume(epic, volume),
                     e -> {
-                        LOG.error("Error subscribing to volume observable", e);
+                        LOG.error("Error subscribing to volume observable for {}", epic.getName(), e);
                         Zorro.indicateError();
                     },
                     () -> LOG.info("Received complete signal from VolumeObservable for epic {}", epic.getName())

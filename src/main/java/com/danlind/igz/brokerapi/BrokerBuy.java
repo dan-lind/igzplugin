@@ -13,6 +13,9 @@ import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.OrderType;
 import com.danlind.igz.misc.RetryWithDelay;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import net.openhft.chronicle.map.ChronicleMap;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -45,14 +48,16 @@ public class BrokerBuy {
         double stopDistance = tradeParams[1];
         CreateOTCPositionV2Request createPositionRequest = createPositionRequest(epic, numberOfContracts, stopDistance);
 
+        //Disposable progress = indicateProgress();
+
         return restApiAdapter.createPosition(createPositionRequest)
+            .subscribeOn(Schedulers.io())
             .doOnNext(dealReference -> LOG.debug("Got dealReference {} when attempting to open position", dealReference.getValue()))
-            .delay(1500, TimeUnit.MILLISECONDS)
+            .delay(500, TimeUnit.MILLISECONDS)
             .flatMap(dealReference -> restApiAdapter.getDealConfirmationObservable(dealReference.getValue())
                 .retryWhen(new RetryWithDelay(3, 1500))
                 .map(dealConfirmationResponse -> buyConfirmationHandler(dealConfirmationResponse, createPositionRequest.getDirection(), tradeParams))
             )
-            .doOnError(e -> Zorro.indicateError())
             .onErrorReturn(e -> ZorroReturnValues.BROKER_BUY_FAIL.getValue())
             .blockingSingle();
     }
@@ -73,7 +78,14 @@ public class BrokerBuy {
         createPositionRequest.setExpiry(contractDetails.getExpiry());
         createPositionRequest.setOrderType(OrderType.MARKET);
         createPositionRequest.setCurrencyCode(contractDetails.getCurrencyCode());
-        createPositionRequest.setSize(BigDecimal.valueOf(Math.abs(numberOfContracts/contractDetails.getLotAmount())));
+
+        if (contractDetails.getLotAmount() >= 1) {
+            createPositionRequest.setSize(BigDecimal.valueOf(Math.abs(numberOfContracts/contractDetails.getLotAmount())));
+        } else {
+            createPositionRequest.setSize(BigDecimal.valueOf(Math.abs(numberOfContracts)));
+        }
+
+
         createPositionRequest.setGuaranteedStop(false);
         createPositionRequest.setForceOpen(true);
 
@@ -83,9 +95,8 @@ public class BrokerBuy {
             createPositionRequest.setDirection(Direction.SELL);
         }
 
-        //TODO: Check if we should really use scalingFactor here
         if (stopDistance != 0) {
-            createPositionRequest.setStopDistance(BigDecimal.valueOf(stopDistance));
+            createPositionRequest.setStopDistance(BigDecimal.valueOf(stopDistance * contractDetails.getScalingFactor()));
         }
 
         LOG.info(">>> Creating long position epic={}, \ndirection={}, \nexpiry={}, \nsize={}, \norderType={}, \ncurrency={}, \nstop loss distance={}",
@@ -93,4 +104,10 @@ public class BrokerBuy {
             createPositionRequest.getSize(), createPositionRequest.getOrderType(), createPositionRequest.getCurrencyCode(), stopDistance);
         return createPositionRequest;
     }
+
+    private Disposable indicateProgress() {
+        return Observable.interval(250, TimeUnit.MILLISECONDS, Schedulers.io())
+            .subscribe(x -> Zorro.callProgress(1));
+    }
+
 }

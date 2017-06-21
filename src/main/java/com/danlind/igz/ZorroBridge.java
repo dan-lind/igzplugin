@@ -3,7 +3,6 @@ package com.danlind.igz;
 import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.handler.*;
-import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.misc.TimeConvert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,5 +152,4 @@ public class ZorroBridge {
 //        Zorro.logError("doSetOrderText for " + orderText + " called but not yet supported!");
         return ZorroReturnValues.BROKER_COMMAND_OK.getValue();
     }
-
 }

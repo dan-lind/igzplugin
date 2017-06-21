@@ -80,6 +80,7 @@ import com.danlind.igz.ig.api.client.rest.dto.workingorders.otc.createOTCWorking
 import com.danlind.igz.ig.api.client.rest.dto.workingorders.otc.deleteOTCWorkingOrderV2.DeleteOTCWorkingOrderV2Response;
 import com.danlind.igz.ig.api.client.rest.dto.workingorders.otc.updateOTCWorkingOrderV2.UpdateOTCWorkingOrderV2Request;
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -87,7 +88,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.client.HttpClientErrorException;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 @Service
@@ -263,7 +267,8 @@ public class RestAPI extends AbstractService {
             if (HttpStatus.OK.value() == httpResponse.getStatusLine().getStatusCode()) {
                 return objectMapper.readValue(httpResponse.getEntity().getContent(), CloseOTCPositionV1Response.class);
             }
-            throw new RuntimeException("Delete failed: " + httpResponse.getStatusLine());
+            //throw new RuntimeException("Delete failed: " + httpResponse.getStatusLine());
+            throw new HttpClientErrorException(HttpStatus.valueOf(httpResponse.getStatusLine().getStatusCode()),  httpResponse.getStatusLine().getReasonPhrase(), StreamUtils.copyToByteArray(httpResponse.getEntity().getContent()), Charset.defaultCharset());
         } finally {
             if (httpResponse != null) {
                 EntityUtils.consumeQuietly(httpResponse.getEntity());

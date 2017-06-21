@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -73,7 +74,6 @@ public class BrokerLogin {
         return ZorroReturnValues.LOGOUT_OK.getValue();
     }
 
-    //TODO: Handle "errorCode":"error.security.oauth-token-invalid", disconnect (and reconnect or let Zorro handle that)
     private void refreshAccessToken(final ConversationContextV3 contextV3) {
         logger.debug("Refreshing access token");
         try {
@@ -87,6 +87,10 @@ public class BrokerLogin {
 
     //TOOD: What happens if an exception is thrown when attepting to refresh token? Is the observable cancelled?
     private void startRefreshAccessTokenScheduler() {
+        if (Objects.nonNull(tokenSubscription)) {
+            logger.debug("Disposing of existing access token subscription");
+            tokenSubscription.dispose();
+        }
         tokenSubscription = Observable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
             .doOnError(e -> logger.debug("Error when refreshing session token, retrying"))
             .retryWhen(new RetryWithDelay(60, 5000))

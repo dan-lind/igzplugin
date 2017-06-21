@@ -4,8 +4,6 @@ package com.danlind.igz.handler;
 import com.danlind.igz.brokerapi.BrokerHistory;
 import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.PricesItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +39,6 @@ public class HistoryHandler {
     }
 
     public void cancelSubscription() {
-        brokerHistory.cancelSubscription();
+        brokerHistory.cancelTimeOffsetSubscription();
     }
 }

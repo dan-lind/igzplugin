@@ -1,5 +1,6 @@
 package com.danlind.igz.brokerapi;
 
+import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.ContractDetails;
@@ -12,6 +13,9 @@ import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.D
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.OrderType;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.misc.RetryWithDelay;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import net.openhft.chronicle.map.ChronicleMap;
 import org.apache.http.annotation.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +44,6 @@ public class BrokerSell {
         this.marketDataProvider = marketDataProvider;
     }
 
-//TODO: Update to handle correct contract size
     public int closePosition(final int nOrderId,
                              final int nAmount) {
         OrderDetails orderDetails = orderReferenceMap.get(nOrderId);
@@ -51,7 +54,10 @@ public class BrokerSell {
 
         LOG.info(">>> Closing size {} for position with dealId {}", lotSize, dealId.getValue() );
 
+        //Disposable progress = indicateProgress();
+
         return restApiAdapter.closePosition(request)
+            .subscribeOn(Schedulers.io())
             .doOnNext(dealReference -> LOG.debug("Got dealReference {} when attempting to close position with dealId {}", dealReference.getValue(), dealId.getValue()))
             .delay(500, TimeUnit.MILLISECONDS)
             .flatMap(dealReference -> restApiAdapter.getDealConfirmationObservable(dealReference.getValue())
@@ -65,7 +71,6 @@ public class BrokerSell {
     private int closeConfirmationHandler(GetDealConfirmationV1Response dealConfirmationResponse, int nOrderId, int lotSize ) {
         OrderDetails sellOrderDetails = orderReferenceMap.get(nOrderId);
 
-        //TODO: Need to log PositionStatus. Some trades are marked as partially closed, when they are in fact fully closed
         LOG.debug("Position status is {}", dealConfirmationResponse.getStatus());
         if (dealConfirmationResponse.getStatus() == PositionStatus.CLOSED) {
             LOG.debug("Position with deal id {} now fully closed", sellOrderDetails.getDealId().getValue());
@@ -97,4 +102,10 @@ public class BrokerSell {
         request.setOrderType(OrderType.MARKET);
         return request;
     }
+
+    private Disposable indicateProgress() {
+        return Observable.interval(250, TimeUnit.MILLISECONDS, Schedulers.io())
+            .subscribe(x -> Zorro.callProgress(1));
+    }
+
 }

@@ -18,6 +18,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static com.danlind.igz.domain.types.Resolution.*;
 
@@ -53,16 +54,20 @@ public class BrokerHistory {
     }
 
     public void getTimeZoneOffsetObservable() {
+        if (Objects.nonNull(timeZoneOffsetSubscription)) {
+            logger.debug("Disposing of existing time offset subscription");
+            timeZoneOffsetSubscription.dispose();
+        }
         timeZoneOffsetSubscription = restApiAdapter.getTimeZoneOffset()
             .subscribe(
                 timeZone -> {
-                    logger.debug("Updating contract details");
+                    logger.debug("Updating time zone offset");
                     accountZoneOffset = timeZone;
                 }
             );
     }
 
-    public void cancelSubscription() {
+    public void cancelTimeOffsetSubscription() {
         timeZoneOffsetSubscription.dispose();
     }
 

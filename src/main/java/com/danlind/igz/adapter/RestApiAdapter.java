@@ -248,9 +248,11 @@ public class RestApiAdapter {
                     });
             } catch (HttpClientErrorException e) {
                 LOG.error("Exception when getting deal confirmation for deal reference {}, error was {}", dealReference, e.getResponseBodyAsString(), e);
+                Zorro.indicateError();
                 return Observable.error(e);
             } catch (Exception e) {
                 LOG.error("Exception when getting deal confirmation for deal reference {}", dealReference, e);
+                Zorro.indicateError();
                 return Observable.error(e);
             }
         });
