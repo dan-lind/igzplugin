@@ -53,7 +53,7 @@ public class BrokerHistory {
         }
     }
 
-    public void getTimeZoneOffsetObservable() {
+    public void startTimeZoneOffsetSubscription() {
         if (Objects.nonNull(timeZoneOffsetSubscription)) {
             logger.debug("Disposing of existing time offset subscription");
             timeZoneOffsetSubscription.dispose();
@@ -67,7 +67,8 @@ public class BrokerHistory {
             );
     }
 
-    public void cancelTimeOffsetSubscription() {
+    public void cancelTimeZoneOffsetSubscription() {
+        logger.debug("Canceling time offset subscription");
         timeZoneOffsetSubscription.dispose();
     }
 

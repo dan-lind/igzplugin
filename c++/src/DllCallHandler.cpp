@@ -199,11 +199,13 @@ DllCallHandler::BrokerAccount(const char *Account,
 	double *pTradeVal,
 	double *pMarginVal)
 {
+	/* Account parameter not used for now, just ignore it rather than return an error
 	if (Account)
 	{
 		BrokerError("Multiple accounts are not yet supported!");
 		return 0;
 	}
+	*/
 	jdoubleArray jAccountParamsArray = env->NewDoubleArray(3);
 
 	jint res = (jlong)env->CallObjectMethod(JData::JIgZorroBridgeObject,

@@ -48,7 +48,7 @@ public class BrokerAsset {
      */
     public void reconnectAll() {
         marketDataProvider.getAllSubscribedEpics().stream().forEach(epic -> {
-            LOG.debug("Subscribing for epic {}", epic.getName());
+            LOG.debug("Re-subscribing for epic {}", epic.getName());
             subscribeToLighstreamerTickUpdates(epic);
         });
     }
@@ -67,7 +67,6 @@ public class BrokerAsset {
                         //TODO: How to handle close of stream on weekends? (Weekend = 7 is the obvious option for now)
                         LOG.info("Received complete signal from TickObservable for epic {}", epic.getName());
                         marketDataProvider.cancelSubscription(epic);
-                        historyHandler.cancelSubscription();
                     }
                 );
 
@@ -81,8 +80,6 @@ public class BrokerAsset {
                     },
                     () -> LOG.info("Received complete signal from VolumeObservable for epic {}", epic.getName())
                 );
-
-            historyHandler.getTimeZoneOffsetObservable();
 
             //Init volume from historic data
             List<PricesItem> pricesItems = historyHandler.getPriceHistory(epic, VOLUME_WINDOW_LENGTH);

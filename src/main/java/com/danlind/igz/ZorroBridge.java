@@ -43,6 +43,7 @@ public class ZorroBridge {
         accountHandler.startAccountSubscription();
         tradeHandler = context.getBean(TradeHandler.class);
         tradeHandler.checkTradesValid();
+        historyHandler.startTimeZoneOffsetSubscription();
 
         if (!isFirstLogin) {
             logger.debug("Zorro requested new login, resubscribing to all assets");
@@ -71,6 +72,7 @@ public class ZorroBridge {
 
     public int doLogout() {
         logger.debug("Broker Logout called");
+        historyHandler.cancelSubscription();
         return loginHandler.disconnect();
     }
 
