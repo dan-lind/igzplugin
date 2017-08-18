@@ -99,7 +99,7 @@ public class BrokerBuy {
             createPositionRequest.setStopDistance(BigDecimal.valueOf(stopDistance * contractDetails.getScalingFactor()));
         }
 
-        LOG.info(">>> Creating long position epic={}, \ndirection={}, \nexpiry={}, \nsize={}, \norderType={}, \ncurrency={}, \nstop loss distance={}",
+        LOG.info(">>> Creating position for epic={} with \ndirection={}, \nexpiry={}, \nsize={}, \norderType={}, \ncurrency={}, \nstop loss distance={}",
             epic.getName(), createPositionRequest.getDirection(), createPositionRequest.getExpiry(),
             createPositionRequest.getSize(), createPositionRequest.getOrderType(), createPositionRequest.getCurrencyCode(), stopDistance);
         return createPositionRequest;
