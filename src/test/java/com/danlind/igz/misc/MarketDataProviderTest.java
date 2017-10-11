@@ -110,6 +110,17 @@ public class MarketDataProviderTest {
     }
 
     @Test
+    public void testGetContractDetailsException() throws Exception {
+        GetMarketDetailsV3Response newResponse = response;
+        newResponse.getInstrument().getCurrencies().get(0).setCode("SEK");
+        when(restApi.getMarketDetailsV3(any(),anyString())).thenReturn(response).thenThrow(new Exception()).thenReturn(newResponse);
+        marketDataProvider.updateMarketDetails(testEpic);
+        Thread.sleep(100);
+        ContractDetails contractDetails = marketDataProvider.getContractDetails(testEpic);
+        assertEquals("SEK", contractDetails.getCurrencyCode());
+    }
+
+    @Test
     public void testMarketIsTradable() {
         assertEquals(1,marketDataProvider.isAnySubscribedEpicTradable());
         marketDataProvider.updateMarketDetails(testEpic);

@@ -105,6 +105,7 @@ public class RestAPI extends AbstractService {
     }
 
     public AuthenticationResponseAndConversationContext createSessionV3(CreateSessionV3Request authenticationRequest, String apiKey) {
+
         return authenticationService.createSessionV3(authenticationRequest, apiKey);
     }
 

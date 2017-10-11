@@ -53,7 +53,6 @@ public class RestApiAdapter {
     @Autowired
     private PluginProperties pluginProperties;
 
-
     public long getServerTime() {
         try {
             return restApi.getEncryptionKeySessionV1(loginHandler.getConversationContext()).getTimeStamp();

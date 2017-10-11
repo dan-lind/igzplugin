@@ -16,13 +16,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
-import java.util.concurrent.ScheduledFuture;
+import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -53,9 +55,6 @@ public class BrokerLoginTest {
     @Mock
     ConnectionListener connectionListener;
 
-    @Mock
-    ScheduledFuture scheduledFuture;
-
     @InjectMocks
     RestApiAdapter restApiAdapter;
 
@@ -66,7 +65,7 @@ public class BrokerLoginTest {
 
     @Before
     public void setUp() throws Exception {
-        brokerLogin = new BrokerLogin(streamingApiAdapter, restApiAdapter, pluginProperties);
+        brokerLogin = Mockito.spy(new BrokerLogin(streamingApiAdapter, restApiAdapter, pluginProperties));
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.when(Zorro.class,"callProgress",anyInt()).thenReturn(1);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");
@@ -76,8 +75,6 @@ public class BrokerLoginTest {
             .conversationContext(mock(ConversationContextV3.class))
             .lightstreamerEndpoint("TestLightstreamerEndpoint")
             .build();
-
-
 
         when(restApi.createSessionV3(any(), any())).thenReturn(context);
         when(streamingAPI.connect(anyString(), any(), anyString())).thenReturn(connectionListener);
@@ -103,11 +100,31 @@ public class BrokerLoginTest {
         assertEquals(0,brokerLogin.connect("TestId", "TestPassword", "Real"));
     }
 
+    //TODO: Double check if this test is doing what it should
     @Test
     public void testRefreshToken() throws Exception {
         when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
         assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
         verify(restApi, atLeastOnce()).refreshSessionV1(any(), any());
+        brokerLogin.disconnect();
+    }
+
+    @Test
+    public void testOauthTokenInvalid() throws Exception {
+        when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
+        when(restApi.refreshSessionV1(any(), any())).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED, "", "{\"errorCode\":\"error.security.oauth-token-invalid\"}".getBytes(), Charset.defaultCharset()));
+        assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
+        Thread.sleep(10);
+        verify(brokerLogin, atLeastOnce()).disconnect();
+    }
+
+    @Test
+    public void testOtherException() throws Exception {
+        when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
+        when(restApi.refreshSessionV1(any(), any())).thenThrow(new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE));
+        assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
+        Thread.sleep(10);
+        verify(brokerLogin, atLeastOnce()).disconnect();
     }
 
     @Test

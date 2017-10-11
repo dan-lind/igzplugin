@@ -12,7 +12,6 @@ import com.danlind.igz.ig.api.client.rest.ConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
 import com.danlind.igz.ig.api.client.rest.dto.session.refreshSessionV1.RefreshSessionV1Request;
-import com.danlind.igz.misc.RetryWithDelay;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -80,7 +79,7 @@ public class BrokerLogin {
             ConversationContextV3 newContextV3 = new ConversationContextV3(restApiAdapter.refreshSessionV1(contextV3, RefreshSessionV1Request.builder().refresh_token(contextV3.getRefreshToken()).build()), contextV3.getAccountId(), contextV3.getApiKey());
             authenticationContext.setConversationContext(newContextV3);
         } catch (OauthTokenInvalidException e) {
-            logger.info("Detected invalid oauth token, attempting to reconnect");
+            logger.info("Detected invalid oauth token, will attempt to reconnect");
             disconnect();
         }
     }
@@ -92,14 +91,12 @@ public class BrokerLogin {
             tokenSubscription.dispose();
         }
         tokenSubscription = Observable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
-            .doOnError(e -> logger.debug("Error when refreshing session token, retrying"))
-            .retryWhen(new RetryWithDelay(60, 5000))
             .subscribe(x -> {
                     ConversationContextV3 contextV3 = (ConversationContextV3) authenticationContext.getConversationContext();
                     refreshAccessToken(contextV3);
                 },
                 error -> {
-                    logger.error("Exception after retrying refreshing session token, disconnecting");
+                    logger.error("Exception after retrying refreshing session token, will attempt to reconnect");
                     disconnect();
                 }
             );
