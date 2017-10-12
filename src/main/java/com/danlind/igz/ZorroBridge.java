@@ -4,10 +4,15 @@ import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.types.Epic;
 import com.danlind.igz.handler.*;
 import com.danlind.igz.misc.TimeConvert;
+import io.reactivex.exceptions.UndeliverableException;
+import io.reactivex.plugins.RxJavaPlugins;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import java.io.IOException;
+import java.net.SocketException;
 
 
 public class ZorroBridge {
@@ -35,6 +40,7 @@ public class ZorroBridge {
     }
 
     private void initComponents() {
+        setRxErrorHandler();
         timeHandler = context.getBean(TimeHandler.class);
         timeHandler.subscribeToLighstreamerHeartbeat();
         assetHandler = context.getBean(AssetHandler.class);
@@ -153,5 +159,34 @@ public class ZorroBridge {
     public int doSetOrderText(final String orderText) {
 //        Zorro.logError("doSetOrderText for " + orderText + " called but not yet supported!");
         return ZorroReturnValues.BROKER_COMMAND_OK.getValue();
+    }
+
+    private void setRxErrorHandler() {
+        RxJavaPlugins.setErrorHandler(e -> {
+            if (e instanceof UndeliverableException) {
+                e = e.getCause();
+            }
+            if ((e instanceof IOException) || (e instanceof SocketException)) {
+                // fine, irrelevant network problem or API that throws on cancellation
+                return;
+            }
+            if (e instanceof InterruptedException) {
+                // fine, some blocking code was interrupted by a dispose call
+                return;
+            }
+            if ((e instanceof NullPointerException) || (e instanceof IllegalArgumentException)) {
+                // that's likely a bug in the application
+                Thread.currentThread().getUncaughtExceptionHandler()
+                    .uncaughtException(Thread.currentThread(), e);
+                return;
+            }
+            if (e instanceof IllegalStateException) {
+                // that's a bug in RxJava or in a custom operator
+                Thread.currentThread().getUncaughtExceptionHandler()
+                    .uncaughtException(Thread.currentThread(), e);
+                return;
+            }
+            logger.warn("Undeliverable exception received, not sure what to do", e);
+        });
     }
 }
