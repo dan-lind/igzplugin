@@ -10,6 +10,7 @@ import com.danlind.igz.ig.api.client.StreamingAPI;
 import com.danlind.igz.ig.api.client.rest.AuthenticationResponseAndConversationContext;
 import com.danlind.igz.ig.api.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
+import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -135,8 +136,8 @@ public class StreamingApiAdapter {
         });
     }
 
-    public void connect(AuthenticationResponseAndConversationContext authenticationContext) throws Exception {
-        streamingAPI.connect(authenticationContext.getAccountId(), authenticationContext.getConversationContext(), authenticationContext.getLightstreamerEndpoint());
+    public Completable connect(AuthenticationResponseAndConversationContext authenticationContext) throws Exception {
+        return Completable.fromCallable(() -> streamingAPI.connect(authenticationContext.getAccountId(), authenticationContext.getConversationContext(), authenticationContext.getLightstreamerEndpoint()));
     }
 
     public void disconnect() {

@@ -72,7 +72,7 @@ public class BrokerTime {
             if (currentTimeMillis == 0) {
                 logger.info("Getting initial time from restAPI");
                 Disposable disposable = indicateProgress();
-                currentTimeMillis = restApiAdapter.getServerTime();
+                currentTimeMillis = restApiAdapter.getServerTime().blockingGet();
                 disposable.dispose();
             } else if (!isConnected) {
                 return 0;

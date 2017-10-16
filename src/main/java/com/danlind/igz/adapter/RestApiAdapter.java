@@ -23,7 +23,11 @@ import com.danlind.igz.ig.api.client.rest.dto.prices.getPricesV3.GetPricesV3Resp
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.AccessTokenResponse;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
 import com.danlind.igz.ig.api.client.rest.dto.session.refreshSessionV1.RefreshSessionV1Request;
+import com.danlind.igz.misc.ExceptionHelper;
+import com.danlind.igz.misc.RetryWithDelay;
+import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,18 +57,9 @@ public class RestApiAdapter {
     @Autowired
     private PluginProperties pluginProperties;
 
-    public long getServerTime() {
-        try {
-            return restApi.getEncryptionKeySessionV1(loginHandler.getConversationContext()).getTimeStamp();
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception getting time from server: {}", e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw e;
-        } catch (Exception e) {
-            LOG.error("Exception getting time from server", e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+    public Single<Long> getServerTime() {
+        return Single.fromCallable(() -> restApi.getEncryptionKeySessionV1(loginHandler.getConversationContext()).getTimeStamp())
+            .doOnError(err -> LOG.error("Exception getting time from server: {}", ExceptionHelper.getErrorMessage(err), err));
     }
 
     public GetPricesV3Response getHistoricPrices(String pageNumber, String maxTicks, String pageSize, String epic, String startDate, String endDate, String resolution) {
@@ -89,19 +84,11 @@ public class RestApiAdapter {
     }
 
     public Observable<Integer> getTimeZoneOffset() {
-        try {
-            LOG.debug("Getting TimeZoneOffset");
-            return Observable.interval(0, 1, TimeUnit.HOURS, Schedulers.io())
-            .map(x -> restApi.getSessionV1(loginHandler.getConversationContext(), false).getBody().getTimezoneOffset());
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when getting time zone offset info: {}", e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw e;
-        } catch (Exception e) {
-            LOG.error("Exception when getting broker account info", e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+        LOG.debug("Getting TimeZoneOffset");
+        return Observable.interval(0, 1, TimeUnit.HOURS, Schedulers.io())
+            .map(x -> restApi.getSessionV1(loginHandler.getConversationContext(), false).getBody().getTimezoneOffset())
+            .retryWhen(new RetryWithDelay(5, 2000))
+            .doOnError(err -> LOG.error("Exception when getting time zone offset info: {}", ExceptionHelper.getErrorMessage(err), err));
     }
 
     public boolean getPositionStatus(DealId dealId) {
@@ -126,40 +113,23 @@ public class RestApiAdapter {
     }
 
     public Observable<ContractDetails> getContractDetailsObservable(Epic epic) {
-        try {
-            return Observable.interval(pluginProperties.getRefreshMarketDataInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
-                .map(x -> restApi.getMarketDetailsV3(loginHandler.getConversationContext(), epic.getName()))
-                .map(this::createContractDetails);
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when getting broker account info: {}", e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw e;
-        } catch (Exception e) {
-            LOG.error("Exception when getting broker account info", e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+        return Observable.interval(pluginProperties.getRefreshMarketDataInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
+            .map(x -> restApi.getMarketDetailsV3(loginHandler.getConversationContext(), epic.getName()))
+            .map(this::createContractDetails)
+            .retryWhen(new RetryWithDelay(5, 2000))
+            .doOnError(err -> LOG.error("Exception when getting contract details for {}, {}", epic.getName(), ExceptionHelper.getErrorMessage(err), err));
     }
 
-    public Observable<ContractDetails> getContractDetailsBlocking(Epic epic) {
-        try {
-            GetMarketDetailsV3Response marketDetails = restApi.getMarketDetailsV3(loginHandler.getConversationContext(), epic.getName());
-            return Observable.just(createContractDetails(marketDetails));
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when getting broker account info: {}", e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw e;
-        } catch (Exception e) {
-            LOG.error("Exception when getting broker account info", e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+    public Single<ContractDetails> getContractDetailsBlocking(Epic epic) {
+        return Single.fromCallable(() -> restApi.getMarketDetailsV3(loginHandler.getConversationContext(), epic.getName()))
+            .map(marketDetails -> createContractDetails(marketDetails))
+            .doOnError(err -> LOG.error("Exception when getting contract details blocking for {}, {}", epic.getName(), ExceptionHelper.getErrorMessage(err),err));
     }
 
     private ContractDetails createContractDetails(GetMarketDetailsV3Response marketDetails) {
         return new ContractDetails(new Epic(marketDetails.getInstrument().getEpic()),
             (1d / marketDetails.getSnapshot().getScalingFactor()),
-            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip().replace(",","")) / marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
+            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip().replace(",", "")) / marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
             Double.parseDouble(marketDetails.getInstrument().getContractSize()),
             100 / marketDetails.getInstrument().getMarginFactor().doubleValue() * -1,
             marketDetails.getSnapshot().getBid().doubleValue(),
@@ -171,129 +141,62 @@ public class RestApiAdapter {
     }
 
 
-    public Observable<AccountDetails> getAccountDetails(String accountId) {
-        try {
-            List<AccountsItem> accountsItemList = restApi.getAccountsV1(loginHandler.getConversationContext()).getAccounts();
-            Balance balance = accountsItemList.stream().filter(account -> account.getAccountId().equals(accountId)).findFirst().get().getBalance();
-            return Observable.just(new AccountDetails(balance.getBalance(), balance.getProfitLoss(), balance.getDeposit()));
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when getting info for broker account {}, error was: {}", accountId, e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw e;
-        } catch (Exception e) {
-            LOG.error("Exception when getting info for broker account {}", accountId, e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+    public Single<AccountDetails> getAccountDetails(String accountId) {
+        return Single.fromCallable(() -> restApi.getAccountsV1(loginHandler.getConversationContext()).getAccounts())
+            .doOnError(err -> LOG.error("Exception when getting info for broker account {}, {}", accountId, ExceptionHelper.getErrorMessage(err),err))
+            .map(accountsItems -> accountsItems.stream().filter(account -> account.getAccountId().equals(accountId)).findFirst().get().getBalance())
+            .map(balance -> new AccountDetails(balance.getBalance(), balance.getProfitLoss(), balance.getDeposit()));
     }
 
     public Observable<DealReference> createPosition(CreateOTCPositionV2Request createPositionRequest) {
-        try {
-            return Observable.just(new DealReference(restApi.createOTCPositionV2(loginHandler.getConversationContext(), createPositionRequest).getDealReference()));
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when creating position for {}, error was: {}", createPositionRequest.getEpic(), e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        } catch (Exception e) {
-            LOG.error("Exception when creating position for {}", createPositionRequest.getEpic(), e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        }
+        return Observable.fromCallable(() -> new DealReference(restApi.createOTCPositionV2(loginHandler.getConversationContext(), createPositionRequest).getDealReference()))
+            .retryWhen(new RetryWithDelay(3, 1500))
+            .doOnError(err -> LOG.error("Exception when creating position for {}, {}", createPositionRequest.getEpic(), ExceptionHelper.getErrorMessage(err), err));
     }
 
     public Observable<DealReference> closePosition(CloseOTCPositionV1Request closePositionRequest) {
-        try {
-            return Observable.just(new DealReference(restApi.closeOTCPositionV1(loginHandler.getConversationContext(), closePositionRequest).getDealReference()));
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when closing position for deal id {}, error was {}", closePositionRequest.getDealId(), e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        } catch (Exception e) {
-            LOG.error("Exception when closing position for deal id {}", closePositionRequest.getDealId(), e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        }
+        return Observable.fromCallable(() ->
+            new DealReference(restApi.closeOTCPositionV1(loginHandler.getConversationContext(), closePositionRequest).getDealReference()))
+            .retryWhen(new RetryWithDelay(3, 1500))
+            .doOnError(err -> LOG.error("Exception when closing position for deal id {}, {}", closePositionRequest.getDealId(), ExceptionHelper.getErrorMessage(err), err));
     }
 
     public Observable<DealReference> getUpdateStopObservable(String dealId, UpdateOTCPositionV2Request updatePositionRequest) {
-        try {
-            return Observable.just(new DealReference(restApi.updateOTCPositionV2(loginHandler.getConversationContext(), dealId, updatePositionRequest).getDealReference()));
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when updating position for deal id {}, error was {}", dealId, e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        } catch (Exception e) {
-            LOG.error("Exception when updating position for deal id {}", dealId, e);
-            Zorro.indicateError();
-            return Observable.error(e);
-        }
+        return Observable.fromCallable(() ->
+            new DealReference(restApi.updateOTCPositionV2(loginHandler.getConversationContext(), dealId, updatePositionRequest).getDealReference()))
+            .retryWhen(new RetryWithDelay(3, 1500))
+            .doOnError(err -> LOG.error("Exception when updating position for deal id {}, {}", dealId, ExceptionHelper.getErrorMessage(err), err));
     }
 
     public Observable<GetDealConfirmationV1Response> getDealConfirmationObservable(String dealReference) {
-        return Observable.defer(() -> {
-            try {
-                LOG.debug("Attempting to get confirmation for dealReference {}", dealReference);
-
-                return Observable.just(restApi.getDealConfirmationV1(loginHandler.getConversationContext(), dealReference))
-                    .flatMap(dealConfirmation -> {
-                        if (dealConfirmation.getDealStatus() == DealStatus.ACCEPTED) {
-                            LOG.debug("Deal accepted for dealReference {}", dealReference);
-                            return Observable.just(dealConfirmation);
-                        } else {
-                            LOG.warn("Order with deal id {} was rejected with reason code {}", dealConfirmation.getDealId(), dealConfirmation.getReason());
-                            Zorro.indicateError();
-                            return Observable.error(new RuntimeException());
-                        }
-                    });
-            } catch (HttpClientErrorException e) {
-                LOG.error("Exception when getting deal confirmation for deal reference {}, error was {}", dealReference, e.getResponseBodyAsString(), e);
-                Zorro.indicateError();
-                return Observable.error(e);
-            } catch (Exception e) {
-                LOG.error("Exception when getting deal confirmation for deal reference {}", dealReference, e);
-                Zorro.indicateError();
-                return Observable.error(e);
-            }
-        });
+        LOG.debug("Attempting to get confirmation for dealReference {}", dealReference);
+        return Observable.fromCallable(() -> restApi.getDealConfirmationV1(loginHandler.getConversationContext(), dealReference))
+            .flatMap(dealConfirmation -> {
+                if (dealConfirmation.getDealStatus() == DealStatus.ACCEPTED) {
+                    LOG.debug("Deal accepted for dealReference {}", dealReference);
+                    return Observable.just(dealConfirmation);
+                } else {
+                    LOG.warn("Order with deal id {} was rejected with reason code {}", dealConfirmation.getDealId(), dealConfirmation.getReason());
+                    Zorro.indicateError();
+                    return Observable.error(new RuntimeException());
+                }
+            })
+            .retryWhen(new RetryWithDelay(3, 1500))
+            .doOnError(err -> LOG.error("Exception when getting deal confirmation for deal reference {}, {}", dealReference, ExceptionHelper.getErrorMessage(err),err));
     }
 
     public String getAccountId() {
         return loginHandler.getAccountId();
     }
 
-    public AuthenticationResponseAndConversationContext createSessionV3(CreateSessionV3Request authRequest, String apiKey) {
-        try {
-            return restApi.createSessionV3(authRequest, apiKey);
-        } catch (HttpClientErrorException e) {
-            LOG.error("Exception when creating session with api key {}, error was {}", apiKey, e.getResponseBodyAsString(), e);
-            Zorro.indicateError();
-            throw e;
-        } catch (Exception e) {
-            LOG.error("Exception when creating session with api key {}", apiKey, e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+    public Single<AuthenticationResponseAndConversationContext> createSessionV3(CreateSessionV3Request authRequest, String apiKey) {
+        return Single.fromCallable(() -> restApi.createSessionV3(authRequest, apiKey))
+            .doOnError(err -> LOG.error("Exception when logging in, {}",ExceptionHelper.getErrorMessage(err),err));
     }
 
-    public AccessTokenResponse refreshSessionV1(ConversationContextV3 contextV3, RefreshSessionV1Request build) {
-        try {
-            return restApi.refreshSessionV1(contextV3, build);
-        } catch (HttpClientErrorException e) {
-            if (e.getRawStatusCode() == 401 && e.getResponseBodyAsString().equals("{\"errorCode\":\"error.security.oauth-token-invalid\"}")) {
-                throw new OauthTokenInvalidException();
-            } else if (e.getRawStatusCode() == 503) {
-                LOG.error("IG Server is unavailable, will retry again shortly");
-                Zorro.indicateError();
-                throw e;
-            } else {
-                LOG.error("Exception when refreshing session token, error was {}", e.getResponseBodyAsString(), e);
-                Zorro.indicateError();
-                throw e;
-            }
-        } catch (Exception e) {
-            LOG.error("Exception when refreshing session token", e);
-            Zorro.indicateError();
-            throw new RuntimeException(e.getMessage());
-        }
+    public Observable<AccessTokenResponse> refreshSessionV1(ConversationContextV3 contextV3, RefreshSessionV1Request build) {
+        return Observable.fromCallable(() -> restApi.refreshSessionV1(contextV3, build))
+            .retryWhen(new RetryWithDelay(pluginProperties.getRefreshTokenRetires(), pluginProperties.getRefreshTokenRetryInterval()))
+            .doOnError(err -> LOG.error("Exception when refreshing session token,  {}",ExceptionHelper.getErrorMessage(err),err));
     }
 }

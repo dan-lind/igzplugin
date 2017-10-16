@@ -66,7 +66,7 @@ public class BrokerSellTest {
     Epic testEpic = new Epic("TestEpic");
     double[] tradeParams;
     private GetDealConfirmationV1Response getDealConfirmationV1Response = new GetDealConfirmationV1Response();
-//
+
     @Before
     public void setUp() throws Exception {
         atomicInteger = new AtomicInteger(1001);

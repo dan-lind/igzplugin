@@ -37,8 +37,7 @@ public class BrokerAccount {
                 }
             );
 
-        accountDetails = restApiAdapter.getAccountDetails(restApiAdapter.getAccountId())
-            .blockingSingle();
+        accountDetails = restApiAdapter.getAccountDetails(restApiAdapter.getAccountId()).blockingGet();
     }
 
     private void setAccountDetails(AccountDetails accountDetails) {

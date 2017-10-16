@@ -38,6 +38,7 @@ import java.util.Collections;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +67,9 @@ public class BrokerAccountTest {
     @Before
     public void setUp() throws Exception {
         brokerAccount = new BrokerAccount(restApiAdapter, streamingApiAdapter);
+        PowerMockito.mockStatic(Zorro.class);
+        PowerMockito.when(Zorro.class,"callProgress",anyInt()).thenReturn(1);
+        PowerMockito.doNothing().when(Zorro.class,"indicateError");
 
         accountDetails = new AccountDetails(5000, 10, 15);
         when(loginHandler.getAccountId()).thenReturn("TestAccountId");

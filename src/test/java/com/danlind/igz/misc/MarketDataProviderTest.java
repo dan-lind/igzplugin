@@ -95,7 +95,7 @@ public class MarketDataProviderTest {
         ContractDetails contractDetails = marketDataProvider.getContractDetails(testEpic);
         assertEquals("EUR", contractDetails.getCurrencyCode());
         response.getInstrument().getCurrencies().get(0).setCode("USD");
-        Thread.sleep(100);
+        Thread.sleep(300);
         contractDetails = marketDataProvider.getContractDetails(testEpic);
         assertEquals("USD", contractDetails.getCurrencyCode());
 

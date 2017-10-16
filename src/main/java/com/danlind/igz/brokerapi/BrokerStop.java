@@ -5,6 +5,7 @@ import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Request;
+import com.danlind.igz.misc.ExceptionHelper;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.misc.RetryWithDelay;
 import net.openhft.chronicle.map.ChronicleMap;
@@ -40,7 +41,6 @@ public class BrokerStop {
             .doOnNext(dealReference -> LOG.debug("Got dealReference {} when attempting to update stop for dealId", dealReference.getValue(), dealId.getValue()))
             .delay(500, TimeUnit.MILLISECONDS)
             .flatMap(dealReference -> restApiAdapter.getDealConfirmationObservable(dealReference.getValue())
-                .retryWhen(new RetryWithDelay(3, 1500))
                 .map(event -> ZorroReturnValues.ADJUST_SL_OK.getValue())
             )
             .onErrorReturn(e -> ZorroReturnValues.ADJUST_SL_FAIL.getValue())

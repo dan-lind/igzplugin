@@ -23,6 +23,10 @@ public class PluginProperties {
 
     private int refreshTokenInterval;
 
+    private int refreshTokenRetires;
+
+    private int refreshTokenRetryInterval;
+
     private int refreshMarketDataInterval;
 
     public String getDemoApiKey() {
@@ -71,5 +75,21 @@ public class PluginProperties {
 
     public void setRefreshMarketDataInterval(int refreshMarketDataInterval) {
         this.refreshMarketDataInterval = refreshMarketDataInterval;
+    }
+
+    public int getRefreshTokenRetires() {
+        return refreshTokenRetires;
+    }
+
+    public void setRefreshTokenRetires(int refreshTokenRetires) {
+        this.refreshTokenRetires = refreshTokenRetires;
+    }
+
+    public int getRefreshTokenRetryInterval() {
+        return refreshTokenRetryInterval;
+    }
+
+    public void setRefreshTokenRetryInterval(int refreshTokenRetryInterval) {
+        this.refreshTokenRetryInterval = refreshTokenRetryInterval;
     }
 }

@@ -1,7 +1,6 @@
 package com.danlind.igz.brokerapi;
 
 import com.danlind.igz.Zorro;
-import com.danlind.igz.adapter.OauthTokenInvalidException;
 import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.adapter.StreamingApiAdapter;
 import com.danlind.igz.config.PluginProperties;
@@ -12,6 +11,7 @@ import com.danlind.igz.ig.api.client.rest.ConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
 import com.danlind.igz.ig.api.client.rest.dto.session.refreshSessionV1.RefreshSessionV1Request;
+import com.danlind.igz.misc.RetryWithDelay;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -44,24 +44,21 @@ public class BrokerLogin {
     public int connect(String identifier, String password, String accountType) {
         this.zorroAccountType = AccountType.valueOf(accountType);
         logger.info("Connecting to IG {}-account as {}", this.zorroAccountType.name(), identifier);
-        Disposable progress = indicateProgress();
-        String apiKey = this.zorroAccountType == AccountType.Real ? pluginProperties.getRealApiKey() : pluginProperties.getDemoApiKey();
 
-        try {
-            CreateSessionV3Request authRequest = new CreateSessionV3Request();
-            authRequest.setIdentifier(identifier);
-            authRequest.setPassword(password);
-            authenticationContext = restApiAdapter.createSessionV3(authRequest, apiKey);
-            streamingApiAdapter.connect(authenticationContext);
-            startRefreshAccessTokenScheduler();
-            return ZorroReturnValues.LOGIN_OK.getValue();
-        } catch (Exception e) {
-            logger.error("Exception while logging in", e);
-            Zorro.indicateError();
-            return ZorroReturnValues.LOGIN_FAIL.getValue();
-        } finally {
-            progress.dispose();
-        }
+        String apiKey = this.zorroAccountType == AccountType.Real ? pluginProperties.getRealApiKey() : pluginProperties.getDemoApiKey();
+        CreateSessionV3Request authRequest = new CreateSessionV3Request();
+        authRequest.setIdentifier(identifier);
+        authRequest.setPassword(password);
+        Disposable progress = indicateProgress();
+
+        return restApiAdapter.createSessionV3(authRequest, apiKey)
+            .doOnSuccess(this::setAuthenticationContext)
+            .map(authenticationContext -> streamingApiAdapter.connect(authenticationContext))
+            .map(__ -> ZorroReturnValues.LOGIN_OK.getValue())
+            .doOnSuccess(__ -> startRefreshAccessTokenScheduler())
+            .onErrorReturn(err -> ZorroReturnValues.LOGIN_FAIL.getValue())
+            .doFinally(() -> progress.dispose())
+            .blockingGet();
     }
 
     public int disconnect() {
@@ -73,33 +70,24 @@ public class BrokerLogin {
         return ZorroReturnValues.LOGOUT_OK.getValue();
     }
 
-    private void refreshAccessToken(final ConversationContextV3 contextV3) {
+    private void refreshAccessToken() {
         logger.debug("Refreshing access token");
-        try {
-            ConversationContextV3 newContextV3 = new ConversationContextV3(restApiAdapter.refreshSessionV1(contextV3, RefreshSessionV1Request.builder().refresh_token(contextV3.getRefreshToken()).build()), contextV3.getAccountId(), contextV3.getApiKey());
-            authenticationContext.setConversationContext(newContextV3);
-        } catch (OauthTokenInvalidException e) {
-            logger.info("Detected invalid oauth token, will attempt to reconnect");
-            disconnect();
-        }
+        ConversationContextV3 contextV3 = (ConversationContextV3) authenticationContext.getConversationContext();
+        restApiAdapter.refreshSessionV1((ConversationContextV3) authenticationContext.getConversationContext(),
+            RefreshSessionV1Request.builder().refresh_token(contextV3.getRefreshToken()).build())
+            .subscribe(accessToken -> authenticationContext.setConversationContext(
+                new ConversationContextV3(accessToken, contextV3.getAccountId(), contextV3.getApiKey())), error -> disconnect());
     }
 
-    //TOOD: What happens if an exception is thrown when attepting to refresh token? Is the observable cancelled?
     private void startRefreshAccessTokenScheduler() {
         if (Objects.nonNull(tokenSubscription)) {
             logger.debug("Disposing of existing access token subscription");
             tokenSubscription.dispose();
         }
         tokenSubscription = Observable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
-            .subscribe(x -> {
-                    ConversationContextV3 contextV3 = (ConversationContextV3) authenticationContext.getConversationContext();
-                    refreshAccessToken(contextV3);
-                },
-                error -> {
-                    logger.error("Exception after retrying refreshing session token, will attempt to reconnect");
-                    disconnect();
-                }
-            );
+            .doOnError(error -> logger.error("Got error from interval", error))
+            .retry(3)
+            .subscribe(x -> refreshAccessToken());
     }
 
     private Disposable indicateProgress() {
@@ -117,5 +105,9 @@ public class BrokerLogin {
 
     public AccountType getZorroAccountType() {
         return zorroAccountType;
+    }
+
+    private void setAuthenticationContext(AuthenticationResponseAndConversationContext authenticationContext) {
+        this.authenticationContext = authenticationContext;
     }
 }

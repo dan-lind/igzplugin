@@ -10,6 +10,7 @@ import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.StreamingAPI;
 import com.danlind.igz.ig.api.client.rest.AuthenticationResponseAndConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
+import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.AccessTokenResponse;
 import com.lightstreamer.ls_client.ConnectionListener;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +77,11 @@ public class BrokerLoginTest {
             .lightstreamerEndpoint("TestLightstreamerEndpoint")
             .build();
 
+        AccessTokenResponse accessTokenResponse = new AccessTokenResponse();
+        accessTokenResponse.setExpires_in("10000");
+
         when(restApi.createSessionV3(any(), any())).thenReturn(context);
+        when(restApi.refreshSessionV1(any(), any())).thenReturn(accessTokenResponse);
         when(streamingAPI.connect(anyString(), any(), anyString())).thenReturn(connectionListener);
         when(pluginProperties.getRefreshTokenInterval()).thenReturn(30000);
     }
@@ -100,30 +105,24 @@ public class BrokerLoginTest {
         assertEquals(0,brokerLogin.connect("TestId", "TestPassword", "Real"));
     }
 
-    //TODO: Double check if this test is doing what it should
     @Test
     public void testRefreshToken() throws Exception {
-        when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
+        when(pluginProperties.getRefreshTokenInterval()).thenReturn(300);
         assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
+        Thread.sleep(550);
         verify(restApi, atLeastOnce()).refreshSessionV1(any(), any());
+        verify(brokerLogin, atMost(0)).disconnect();
         brokerLogin.disconnect();
     }
 
     @Test
-    public void testOauthTokenInvalid() throws Exception {
-        when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
+    public void testExceptionOnRefreshToken() throws Exception {
+        when(pluginProperties.getRefreshTokenRetires()).thenReturn(2);
+        when(pluginProperties.getRefreshTokenRetryInterval()).thenReturn(50);
+        when(pluginProperties.getRefreshTokenInterval()).thenReturn(300);
         when(restApi.refreshSessionV1(any(), any())).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED, "", "{\"errorCode\":\"error.security.oauth-token-invalid\"}".getBytes(), Charset.defaultCharset()));
         assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
-        Thread.sleep(10);
-        verify(brokerLogin, atLeastOnce()).disconnect();
-    }
-
-    @Test
-    public void testOtherException() throws Exception {
-        when(pluginProperties.getRefreshTokenInterval()).thenReturn(1);
-        when(restApi.refreshSessionV1(any(), any())).thenThrow(new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE));
-        assertEquals(1,brokerLogin.connect("TestId", "TestPassword", "Real"));
-        Thread.sleep(10);
+        Thread.sleep(500);
         verify(brokerLogin, atLeastOnce()).disconnect();
     }
 

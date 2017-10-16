@@ -55,7 +55,6 @@ public class BrokerBuy {
             .doOnNext(dealReference -> LOG.debug("Got dealReference {} when attempting to open position", dealReference.getValue()))
             .delay(500, TimeUnit.MILLISECONDS)
             .flatMap(dealReference -> restApiAdapter.getDealConfirmationObservable(dealReference.getValue())
-                .retryWhen(new RetryWithDelay(3, 1500))
                 .map(dealConfirmationResponse -> buyConfirmationHandler(dealConfirmationResponse, createPositionRequest.getDirection(), tradeParams))
             )
             .onErrorReturn(e -> ZorroReturnValues.BROKER_BUY_FAIL.getValue())

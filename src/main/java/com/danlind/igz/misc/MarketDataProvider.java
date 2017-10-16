@@ -59,7 +59,7 @@ public class MarketDataProvider {
 
 
     public void updateMarketDetails(Epic epic) {
-        ContractDetails contractDetails = restApiAdapter.getContractDetailsBlocking(epic).blockingSingle();
+        ContractDetails contractDetails = restApiAdapter.getContractDetailsBlocking(epic).blockingGet();
         contractDetailsMap.put(epic, contractDetails);
 
         if (Objects.nonNull(marketDetailsSubscriptions.get(epic))) {
@@ -70,13 +70,11 @@ public class MarketDataProvider {
 
         marketDetailsSubscriptions.put(epic,restApiAdapter.getContractDetailsObservable(epic)
             .subscribeOn(Schedulers.io())
-            .retryWhen(new RetryWithDelay(5, 2000))
             .subscribe(
                 updatedContractDetails -> {
                     logger.debug("Updating contract details for {}",updatedContractDetails.getEpic().getName());
                     contractDetailsMap.put(epic, updatedContractDetails);
-                },
-                e -> logger.error("Unexpected error when updating market details", e)
+                }
             ));
 
 

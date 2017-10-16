@@ -6,14 +6,18 @@ import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
+import com.danlind.igz.domain.types.DealReference;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.GetDealConfirmationV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.PositionStatus;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Request;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.Direction;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.OrderType;
+import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.AccessTokenResponse;
+import com.danlind.igz.misc.ExceptionHelper;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.misc.RetryWithDelay;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import net.openhft.chronicle.map.ChronicleMap;
@@ -107,5 +111,4 @@ public class BrokerSell {
         return Observable.interval(250, TimeUnit.MILLISECONDS, Schedulers.io())
             .subscribe(x -> Zorro.callProgress(1));
     }
-
 }
