@@ -32,6 +32,7 @@ public enum ZorroReturnValues {
     HISTORY_DOWNLOAD_OK(1),
 
     BROKER_COMMAND_OK(1),
+    BROKER_COMMAND_FAIL(0),
     INVALID_SERVER_TIME(0);
 
     private final int value;

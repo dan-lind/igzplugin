@@ -1,6 +1,7 @@
 package com.danlind.igz.brokerapi;
 
 import com.danlind.igz.adapter.RestApiAdapter;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.PriceDetails;
@@ -49,6 +50,9 @@ public class BrokerTradeTest {
 
     @Mock
     MarketDataProvider marketDataProvider;
+
+    @Mock
+    PluginProperties pluginProperties;
 
     @Mock
     AssetHandler assetHandler;
@@ -108,6 +112,8 @@ public class BrokerTradeTest {
 
         when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
         when(assetHandler.getAssetDetails(testEpic)).thenReturn(priceDetails);
+        when(pluginProperties.getRestApiMaxRetry()).thenReturn(3);
+        when(pluginProperties.getRestApiRetryInterval()).thenReturn(100);
 
         contractDetails = new ContractDetails(testEpic, 0.0001, 10, 10000, 0.5, 10, 12, "-", "EUR", 100, MarketStatus.TRADEABLE);
         when(marketDataProvider.getContractDetails(testEpic)).thenReturn(contractDetails);

@@ -1,16 +1,18 @@
 package com.danlind.igz.misc;
 
-import io.reactivex.Observable;
+import io.reactivex.Flowable;
 import io.reactivex.functions.Function;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
-public class RetryWithDelay implements Function<Observable<? extends Throwable>, Observable<?>> {
+public class RetryWithDelay implements Function<Flowable<Throwable>, Publisher<?>> {
+
     private final static Logger LOG = LoggerFactory.getLogger(RetryWithDelay.class);
     private final int maxRetries;
-    private final int retryDelayMillis;
+    private final long retryDelayMillis;
     private int retryCount;
 
     public RetryWithDelay(final int maxRetries, final int retryDelayMillis) {
@@ -20,21 +22,21 @@ public class RetryWithDelay implements Function<Observable<? extends Throwable>,
     }
 
     @Override
-    public Observable<?> apply(final Observable<? extends Throwable> attempts) {
-        return attempts
-            .flatMap((Function<Throwable, Observable<?>>) throwable -> {
-                if (++retryCount < maxRetries) {
-                    LOG.debug("Retry {} of {}", retryCount, maxRetries);
-                    // When this Observable calls onNext, the original
-                    // Observable will be retried (i.e. re-subscribed).
-                    return Observable.timer(retryDelayMillis,
-                        TimeUnit.MILLISECONDS);
-                }
+    public Publisher<?> apply(Flowable<Throwable> throwableFlowable) throws Exception {
+        return throwableFlowable.flatMap((Function<Throwable, Publisher<?>>) throwable -> {
+            if (++retryCount < maxRetries) {
+                LOG.debug("Retry {} of {}", retryCount, maxRetries);
 
-                LOG.debug("Max retries exceeded, passing error downstream");
+                // When this Observable calls onNext, the original
+                // Observable will be retried (i.e. re-subscribed).
+                return Flowable.timer(retryDelayMillis,
+                    TimeUnit.MILLISECONDS);
+            }
 
-                // Max retries hit. Just pass the error along.
-                return Observable.error(throwable);
-            });
+            LOG.debug("Max retries exceeded, passing error downstream");
+
+            // Max retries hit. Just pass the error along.
+            return Flowable.error(throwable);
+        });
     }
 }

@@ -5,6 +5,8 @@ import com.danlind.igz.brokerapi.BrokerSell;
 import com.danlind.igz.brokerapi.BrokerStop;
 import com.danlind.igz.brokerapi.BrokerTrade;
 import com.danlind.igz.domain.types.Epic;
+import com.danlind.igz.domain.types.OrderText;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,10 @@ public class TradeHandler {
 
     public int brokerBuy(final Epic epic, final double[] tradeParams) {
         return brokerBuy.createPosition(epic, tradeParams);
+    }
+
+    public int setOrderText(OrderText orderText) {
+        return brokerBuy.setOrderText(orderText);
     }
 
     public int brokerTrade(final int nTradeID, final double[] orderParams) {

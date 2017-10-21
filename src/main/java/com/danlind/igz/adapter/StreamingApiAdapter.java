@@ -1,6 +1,5 @@
 package com.danlind.igz.adapter;
 
-import com.danlind.igz.Zorro;
 import com.danlind.igz.domain.AccountDetails;
 import com.danlind.igz.domain.PriceDetails;
 import com.danlind.igz.domain.types.Epic;
@@ -9,11 +8,10 @@ import com.danlind.igz.handler.AssetHandler;
 import com.danlind.igz.ig.api.client.StreamingAPI;
 import com.danlind.igz.ig.api.client.rest.AuthenticationResponseAndConversationContext;
 import com.danlind.igz.ig.api.client.streaming.HandyTableListenerAdapter;
+import com.lightstreamer.ls_client.ConnectionListener;
 import com.lightstreamer.ls_client.UpdateInfo;
-import io.reactivex.Completable;
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.Single;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,8 +134,8 @@ public class StreamingApiAdapter {
         });
     }
 
-    public Completable connect(AuthenticationResponseAndConversationContext authenticationContext) throws Exception {
-        return Completable.fromCallable(() -> streamingAPI.connect(authenticationContext.getAccountId(), authenticationContext.getConversationContext(), authenticationContext.getLightstreamerEndpoint()));
+    public Single<ConnectionListener> connect(AuthenticationResponseAndConversationContext authenticationContext) throws Exception {
+        return Single.fromCallable(() -> streamingAPI.connect(authenticationContext.getAccountId(), authenticationContext.getConversationContext(), authenticationContext.getLightstreamerEndpoint()));
     }
 
     public void disconnect() {

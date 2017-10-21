@@ -2,6 +2,7 @@ package com.danlind.igz.brokerapi;
 
 import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
 import com.danlind.igz.handler.LoginHandler;
@@ -51,6 +52,9 @@ public class BrokerStopTest {
     @Mock
     OrderDetails orderDetails;
 
+    @Mock
+    PluginProperties pluginProperties;
+
     @InjectMocks
     RestApiAdapter restApiAdapter;
 
@@ -75,6 +79,8 @@ public class BrokerStopTest {
         when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
         when(orderDetails.getDealId()).thenReturn(new DealId("TestDealId"));
         when(orderReferenceMap.get(any())).thenReturn(orderDetails);
+        when(pluginProperties.getRestApiMaxRetry()).thenReturn(3);
+        when(pluginProperties.getRestApiRetryInterval()).thenReturn(100);
     }
 
     @Test

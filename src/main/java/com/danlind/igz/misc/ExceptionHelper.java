@@ -2,6 +2,7 @@ package com.danlind.igz.misc;
 
 import com.danlind.igz.Zorro;
 import io.reactivex.Single;
+import org.apache.commons.lang.RandomStringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 
 /**
@@ -10,7 +11,6 @@ import org.springframework.web.client.HttpClientErrorException;
 public class ExceptionHelper {
 
     public static String getErrorMessage(Throwable ex) {
-        Zorro.indicateError();
         if (ex instanceof HttpClientErrorException) {
             HttpClientErrorException e = (HttpClientErrorException) ex;
             return "API call failed with status code " + e.getRawStatusCode() + " and body " + e.getResponseBodyAsString();

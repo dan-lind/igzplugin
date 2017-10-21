@@ -2,12 +2,15 @@ package com.danlind.igz.brokerapi;
 
 import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
 import com.danlind.igz.domain.types.Epic;
+import com.danlind.igz.domain.types.OrderText;
 import com.danlind.igz.handler.LoginHandler;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.Reason;
+import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Request;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.DealStatus;
@@ -18,16 +21,20 @@ import io.reactivex.Scheduler;
 import io.reactivex.functions.Function;
 import io.reactivex.plugins.RxJavaPlugins;
 import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.TestSubscriber;
 import net.openhft.chronicle.map.ChronicleMap;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.nio.charset.Charset;
@@ -36,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -56,6 +64,9 @@ public class BrokerBuyTest {
 
     @Mock
     ChronicleMap<Integer, OrderDetails> orderReferenceMap;
+
+    @Mock
+    PluginProperties pluginProperties;
 
     @Mock
     OrderDetails orderDetails;
@@ -95,6 +106,8 @@ public class BrokerBuyTest {
         when(orderDetails.getDealId()).thenReturn(new DealId("TestDealId"));
         when(orderReferenceMap.get(any())).thenReturn(orderDetails);
         when(restApi.createOTCPositionV2(any(), any())).thenReturn(response);
+        when(pluginProperties.getRestApiMaxRetry()).thenReturn(3);
+        when(pluginProperties.getRestApiRetryInterval()).thenReturn(100);
 
         contractDetails = new ContractDetails(testEpic, 2, 3, 4, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
         when(marketDataProvider.getContractDetails(testEpic)).thenReturn(contractDetails);
@@ -137,5 +150,39 @@ public class BrokerBuyTest {
     public void testBrokerBuyConfirmationOtherException() throws Exception {
         when(restApi.getDealConfirmationV1(any(), any())).thenThrow(new RuntimeException("RuntimeException"));
         assertEquals(0, brokerBuy.createPosition(testEpic,tradeParams));
+    }
+
+    @Test
+    public void testWithoutOrderText() throws Exception {
+        brokerBuy.createPosition(testEpic,tradeParams);
+        ArgumentCaptor<CreateOTCPositionV2Request> argumentWithoutOrderText = ArgumentCaptor.forClass(CreateOTCPositionV2Request.class);
+        verify(restApi).createOTCPositionV2(any(), argumentWithoutOrderText.capture());
+        assertEquals(10, argumentWithoutOrderText.getValue().getDealReference().length());
+    }
+
+    @Test
+    public void testWithOrderText() throws Exception {
+        assertEquals(1, brokerBuy.setOrderText(new OrderText("MyTestText")));
+        brokerBuy.createPosition(testEpic,tradeParams);
+        ArgumentCaptor<CreateOTCPositionV2Request> argumentWithOrderText = ArgumentCaptor.forClass(CreateOTCPositionV2Request.class);
+        verify(restApi).createOTCPositionV2(any(), argumentWithOrderText.capture());
+        assertEquals(21, argumentWithOrderText.getValue().getDealReference().length());
+        assertEquals("MyTestText-", argumentWithOrderText.getValue().getDealReference().substring(0,11));
+
+    }
+
+    @Test
+    public void testWithTooLongOrderText() throws Exception {
+        assertEquals(0, brokerBuy.setOrderText(new OrderText("MyTestTextAndItIsVeryLong")));
+    }
+
+    @Test
+    public void testWithMatchingOrderText() throws Exception {
+        assertEquals(1, brokerBuy.setOrderText(new OrderText("VeryLong0-_")));
+    }
+
+    @Test
+    public void testWithNonMatchingOrderText() throws Exception {
+        assertEquals(0, brokerBuy.setOrderText(new OrderText("VeryLong0£")));
     }
 }

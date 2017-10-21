@@ -2,6 +2,7 @@ package com.danlind.igz;
 
 import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.types.Epic;
+import com.danlind.igz.domain.types.OrderText;
 import com.danlind.igz.handler.*;
 import com.danlind.igz.misc.TimeConvert;
 import io.reactivex.exceptions.UndeliverableException;
@@ -157,8 +158,7 @@ public class ZorroBridge {
     }
 
     public int doSetOrderText(final String orderText) {
-//        Zorro.logError("doSetOrderText for " + orderText + " called but not yet supported!");
-        return ZorroReturnValues.BROKER_COMMAND_OK.getValue();
+        return tradeHandler.setOrderText(new OrderText(orderText));
     }
 
     private void setRxErrorHandler() {

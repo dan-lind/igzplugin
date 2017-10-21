@@ -47,7 +47,7 @@ public class BrokerTrade {
             LOG.info("Checking if {} previously opened positions are still open", orderReferenceMap.size());
 
             orderReferenceMap.entrySet().stream()
-                .filter((entry) -> !restApiAdapter.getPositionStatus(entry.getValue().getDealId()))
+                .filter((entry) -> !restApiAdapter.getPositionStatus(entry.getValue().getDealId()).blockingGet())
                 .forEach(missingEntry -> orderReferenceMap.remove(missingEntry.getKey()));
         }
     }

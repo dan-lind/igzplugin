@@ -74,8 +74,6 @@ public class BrokerHistory {
 
     private int fillParamsForValidResolution(Epic epic, double tStart, double tEnd, int nTicks, double[] tickParams, Resolution resolution) {
         LocalDateTime endDateTime = TimeConvert.localDateTimeFromOLEDate(tEnd, accountZoneOffset);
-//        LocalDateTime startDateTime = TimeConvert.localDateTimeFromOLEDate(tStart, accountZoneOffset);
-//        startDateTime = alignStartDateToResolutionLimit(startDateTime, endDateTime, resolution);
         LocalDateTime startDateTime = endDateTime.minusMinutes(nTicks * resolution.getValue());
         logger.debug("Getting prices for epic {}, date range {} - {}, max ticks {}, resolution {}", epic.getName(), startDateTime, endDateTime, nTicks, resolution.name());
         GetPricesV3Response response = restApiAdapter.getHistoricPrices(PAGE_NUMBER,
@@ -84,16 +82,12 @@ public class BrokerHistory {
             epic.getName(),
             startDateTime.toString(),
             endDateTime.toString(),
-            resolution.name());
+            resolution.name()).blockingGet();
 
         if (response.getPrices().size() == 0) {
             logger.warn("Zero ticks returned for requested date range {} - {}", startDateTime, endDateTime);
             return ZorroReturnValues.HISTORY_UNAVAILABLE.getValue();
         }
-
-//        response.getPrices().forEach(priceItem -> {
-//            logger.debug(LocalDateTime.parse(priceItem.getSnapshotTimeUTC()).toString());
-//        });
 
         int tickParamsIndex = 0;
         Collections.reverse(response.getPrices());
@@ -120,7 +114,7 @@ public class BrokerHistory {
             epic.getName(),
             null,
             null,
-            MINUTE.name()).getPrices();
+            MINUTE.name()).blockingGet().getPrices();
     }
 
     /*

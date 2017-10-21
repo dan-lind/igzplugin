@@ -29,7 +29,7 @@ namespace JData
 	const JNINativeMethod nativesTable[2]{ { (char*)"jcallback_BrokerError",    (char*)"(Ljava/lang/String;)I", (void *)&jcallback_BrokerError },
 	{ (char*)"jcallback_BrokerProgress", (char*)"(I)I",                  (void *)&jcallback_BrokerProgress } };
 
-	const char* JVMClassPathOption = "-Djava.class.path=Plugin/ig/igplugin-0.23.jar";
+	const char* JVMClassPathOption = "-Djava.class.path=Plugin/ig/igplugin-0.3.jar";
 	const char* IgZorroBridgePath = "com/danlind/igz/ZorroBridge";
 	const char* ZorroPath = "com/danlind/igz/Zorro";
 	const char* ExcPath = "java/lang/Class";

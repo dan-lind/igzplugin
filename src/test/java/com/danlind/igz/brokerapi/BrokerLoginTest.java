@@ -23,7 +23,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 
 import java.nio.charset.Charset;
 
@@ -117,7 +116,7 @@ public class BrokerLoginTest {
 
     @Test
     public void testExceptionOnRefreshToken() throws Exception {
-        when(pluginProperties.getRefreshTokenRetires()).thenReturn(2);
+        when(pluginProperties.getRefreshTokenMaxRetry()).thenReturn(2);
         when(pluginProperties.getRefreshTokenRetryInterval()).thenReturn(50);
         when(pluginProperties.getRefreshTokenInterval()).thenReturn(300);
         when(restApi.refreshSessionV1(any(), any())).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED, "", "{\"errorCode\":\"error.security.oauth-token-invalid\"}".getBytes(), Charset.defaultCharset()));

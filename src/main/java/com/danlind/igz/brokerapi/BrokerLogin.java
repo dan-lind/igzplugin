@@ -11,7 +11,7 @@ import com.danlind.igz.ig.api.client.rest.ConversationContext;
 import com.danlind.igz.ig.api.client.rest.ConversationContextV3;
 import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.CreateSessionV3Request;
 import com.danlind.igz.ig.api.client.rest.dto.session.refreshSessionV1.RefreshSessionV1Request;
-import com.danlind.igz.misc.RetryWithDelay;
+import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -53,7 +53,7 @@ public class BrokerLogin {
 
         return restApiAdapter.createSessionV3(authRequest, apiKey)
             .doOnSuccess(this::setAuthenticationContext)
-            .map(authenticationContext -> streamingApiAdapter.connect(authenticationContext))
+            .flatMap(authenticationContext -> streamingApiAdapter.connect(authenticationContext))
             .map(__ -> ZorroReturnValues.LOGIN_OK.getValue())
             .doOnSuccess(__ -> startRefreshAccessTokenScheduler())
             .onErrorReturn(err -> ZorroReturnValues.LOGIN_FAIL.getValue())
@@ -84,7 +84,7 @@ public class BrokerLogin {
             logger.debug("Disposing of existing access token subscription");
             tokenSubscription.dispose();
         }
-        tokenSubscription = Observable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
+        tokenSubscription = Flowable.interval(pluginProperties.getRefreshTokenInterval(), TimeUnit.MILLISECONDS, Schedulers.io())
             .doOnError(error -> logger.error("Got error from interval", error))
             .retry(3)
             .subscribe(x -> refreshAccessToken());

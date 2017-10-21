@@ -1,6 +1,7 @@
 package com.danlind.igz.domain;
 
 import com.danlind.igz.domain.types.Epic;
+import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.GetMarketDetailsV3Response;
 import com.danlind.igz.ig.api.client.rest.dto.markets.getMarketDetailsV3.MarketStatus;
 
 import java.util.Objects;
@@ -37,6 +38,20 @@ public class ContractDetails {
         this.lotAmount = lotAmount;
         this.marginCost = marginCost;
         this.marketStatus = marketStatus;
+    }
+
+    public static ContractDetails createContractDetailsFromResponse(GetMarketDetailsV3Response marketDetails) {
+        return new ContractDetails(new Epic(marketDetails.getInstrument().getEpic()),
+            (1d / marketDetails.getSnapshot().getScalingFactor()),
+            Double.parseDouble(marketDetails.getInstrument().getValueOfOnePip().replace(",", "")) / marketDetails.getInstrument().getCurrencies().get(0).getBaseExchangeRate(),
+            Double.parseDouble(marketDetails.getInstrument().getContractSize()),
+            100 / marketDetails.getInstrument().getMarginFactor().doubleValue() * -1,
+            marketDetails.getSnapshot().getBid().doubleValue(),
+            marketDetails.getSnapshot().getOffer().doubleValue(),
+            marketDetails.getInstrument().getExpiry(),
+            marketDetails.getInstrument().getCurrencies().get(0).getCode(),
+            marketDetails.getSnapshot().getScalingFactor(),
+            marketDetails.getSnapshot().getMarketStatus());
     }
 
     public Epic getEpic() {

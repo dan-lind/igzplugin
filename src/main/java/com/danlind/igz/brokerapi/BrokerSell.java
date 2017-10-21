@@ -1,6 +1,5 @@
 package com.danlind.igz.brokerapi;
 
-import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.ContractDetails;
@@ -12,23 +11,17 @@ import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.PositionStat
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Request;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.Direction;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.OrderType;
-import com.danlind.igz.ig.api.client.rest.dto.session.createSessionV3.AccessTokenResponse;
-import com.danlind.igz.misc.ExceptionHelper;
 import com.danlind.igz.misc.MarketDataProvider;
-import com.danlind.igz.misc.RetryWithDelay;
-import io.reactivex.Observable;
 import io.reactivex.Single;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import net.openhft.chronicle.map.ChronicleMap;
-import org.apache.http.annotation.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -53,43 +46,49 @@ public class BrokerSell {
         OrderDetails orderDetails = orderReferenceMap.get(nOrderId);
         DealId dealId = orderDetails.getDealId();
         ContractDetails contractDetails = marketDataProvider.getContractDetails(orderDetails.getEpic());
-        int lotSize = nAmount/(int) contractDetails.getLotAmount();
+        int lotSize = nAmount / (int) contractDetails.getLotAmount();
         CloseOTCPositionV1Request request = createClosePositionRequest(lotSize, dealId);
 
-        LOG.info(">>> Closing size {} for position with dealId {}", lotSize, dealId.getValue() );
-
-        //Disposable progress = indicateProgress();
+        LOG.info(">>> Closing size {} for position with dealId {}", lotSize, dealId.getValue());
 
         return restApiAdapter.closePosition(request)
             .subscribeOn(Schedulers.io())
-            .doOnNext(dealReference -> LOG.debug("Got dealReference {} when attempting to close position with dealId {}", dealReference.getValue(), dealId.getValue()))
+            .doOnSuccess(dealReference -> LOG.debug("Got dealReference {} when attempting to close position with dealId {}", dealReference.getValue(), dealId.getValue()))
             .delay(500, TimeUnit.MILLISECONDS)
-            .flatMap(dealReference -> restApiAdapter.getDealConfirmationObservable(dealReference.getValue())
-                .retryWhen(new RetryWithDelay(3, 1500))
-                .map(dealConfirmationResponse -> closeConfirmationHandler(dealConfirmationResponse, nOrderId, lotSize))
+            .flatMap(this::getDealConfirmation)
+                .flatMap(dealConfirmationResponse -> closeConfirmationHandler(dealConfirmationResponse, nOrderId, lotSize)
             )
             .onErrorReturn(e -> ZorroReturnValues.BROKER_SELL_FAIL.getValue())
-            .blockingSingle();
+            .blockingGet();
     }
 
-    private int closeConfirmationHandler(GetDealConfirmationV1Response dealConfirmationResponse, int nOrderId, int lotSize ) {
-        OrderDetails sellOrderDetails = orderReferenceMap.get(nOrderId);
+    private Single<Optional<GetDealConfirmationV1Response>> getDealConfirmation(DealReference dealReference) {
+        return restApiAdapter.getDealConfirmation(dealReference.getValue());
+    }
 
-        LOG.debug("Position status is {}", dealConfirmationResponse.getStatus());
-        if (dealConfirmationResponse.getStatus() == PositionStatus.CLOSED) {
-            LOG.debug("Position with deal id {} now fully closed", sellOrderDetails.getDealId().getValue());
-            orderReferenceMap.remove(nOrderId);
-            return nOrderId;
+    private Single<Integer> closeConfirmationHandler(Optional<GetDealConfirmationV1Response> maybeDealConfirmationResponse, int nOrderId, int lotSize) {
+        if (maybeDealConfirmationResponse.isPresent()) {
+            GetDealConfirmationV1Response dealConfirmationResponse = maybeDealConfirmationResponse.get();
+            OrderDetails sellOrderDetails = orderReferenceMap.get(nOrderId);
+
+            LOG.debug("Position status is {}", dealConfirmationResponse.getStatus());
+            if (dealConfirmationResponse.getStatus() == PositionStatus.CLOSED) {
+                LOG.debug("Position with deal id {} now fully closed", sellOrderDetails.getDealId().getValue());
+                orderReferenceMap.remove(nOrderId);
+                return Single.just(nOrderId);
+            } else {
+                LOG.debug("Position with deal id {} now partially closed", sellOrderDetails.getDealId().getValue());
+                int newOrderId = atomicInteger.getAndIncrement();
+                orderReferenceMap.put(newOrderId,
+                    new OrderDetails(sellOrderDetails.getEpic(),
+                        sellOrderDetails.getEntryLevel(),
+                        sellOrderDetails.getDirection(),
+                        sellOrderDetails.getPositionSize() - Math.abs(lotSize),
+                        new DealId(dealConfirmationResponse.getDealId())));
+                return Single.just(newOrderId);
+            }
         } else {
-            LOG.debug("Position with deal id {} now partially closed", sellOrderDetails.getDealId().getValue());
-            int newOrderId = atomicInteger.getAndIncrement();
-            orderReferenceMap.put(newOrderId,
-                new OrderDetails(sellOrderDetails.getEpic(),
-                    sellOrderDetails.getEntryLevel(),
-                    sellOrderDetails.getDirection(),
-                    sellOrderDetails.getPositionSize() - Math.abs(lotSize),
-                    new DealId(dealConfirmationResponse.getDealId())));
-            return newOrderId;
+            return Single.just(ZorroReturnValues.BROKER_SELL_FAIL.getValue());
         }
     }
 
@@ -105,10 +104,5 @@ public class BrokerSell {
         }
         request.setOrderType(OrderType.MARKET);
         return request;
-    }
-
-    private Disposable indicateProgress() {
-        return Observable.interval(250, TimeUnit.MILLISECONDS, Schedulers.io())
-            .subscribe(x -> Zorro.callProgress(1));
     }
 }

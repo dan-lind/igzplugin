@@ -4,8 +4,6 @@ package com.danlind.igz.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotNull;
-
 /**
  * Created by danlin on 2017-03-30.
  */
@@ -21,9 +19,13 @@ public class PluginProperties {
 
     private String demoApiUrl;
 
+    private int restApiRetryInterval;
+
+    private int restApiMaxRetry;
+
     private int refreshTokenInterval;
 
-    private int refreshTokenRetires;
+    private int refreshTokenMaxRetry;
 
     private int refreshTokenRetryInterval;
 
@@ -77,12 +79,12 @@ public class PluginProperties {
         this.refreshMarketDataInterval = refreshMarketDataInterval;
     }
 
-    public int getRefreshTokenRetires() {
-        return refreshTokenRetires;
+    public int getRefreshTokenMaxRetry() {
+        return refreshTokenMaxRetry;
     }
 
-    public void setRefreshTokenRetires(int refreshTokenRetires) {
-        this.refreshTokenRetires = refreshTokenRetires;
+    public void setRefreshTokenMaxRetry(int refreshTokenMaxRetry) {
+        this.refreshTokenMaxRetry = refreshTokenMaxRetry;
     }
 
     public int getRefreshTokenRetryInterval() {
@@ -92,4 +94,21 @@ public class PluginProperties {
     public void setRefreshTokenRetryInterval(int refreshTokenRetryInterval) {
         this.refreshTokenRetryInterval = refreshTokenRetryInterval;
     }
+    public int getRestApiRetryInterval() {
+        return restApiRetryInterval;
+    }
+
+    public void setRestApiRetryInterval(int restApiRetryInterval) {
+        this.restApiRetryInterval = restApiRetryInterval;
+    }
+
+    public int getRestApiMaxRetry() {
+        return restApiMaxRetry;
+    }
+
+    public void setRestApiMaxRetry(int restApiMaxRetry) {
+        this.restApiMaxRetry = restApiMaxRetry;
+    }
+
+
 }

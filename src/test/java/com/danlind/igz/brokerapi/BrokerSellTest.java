@@ -2,6 +2,7 @@ package com.danlind.igz.brokerapi;
 
 import com.danlind.igz.Zorro;
 import com.danlind.igz.adapter.RestApiAdapter;
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.OrderDetails;
 import com.danlind.igz.domain.types.DealId;
@@ -54,6 +55,9 @@ public class BrokerSellTest {
     @Mock
     MarketDataProvider marketDataProvider;
 
+    @Mock
+    PluginProperties pluginProperties;
+
     OrderDetails orderDetails;
 
     @InjectMocks
@@ -98,6 +102,9 @@ public class BrokerSellTest {
         when(orderReferenceMap.get(1000)).thenReturn(orderDetails);
         when(restApi.closeOTCPositionV1(any(), any())).thenReturn(response);
         when(marketDataProvider.getContractDetails(any())).thenReturn(contractDetails);
+        when(pluginProperties.getRestApiMaxRetry()).thenReturn(3);
+        when(pluginProperties.getRestApiRetryInterval()).thenReturn(100);
+
     }
 
     @Test

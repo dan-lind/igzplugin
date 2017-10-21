@@ -68,7 +68,7 @@ public class MarketDataProvider {
             marketDetailsSubscriptions.remove(epic);
         }
 
-        marketDetailsSubscriptions.put(epic,restApiAdapter.getContractDetailsObservable(epic)
+        marketDetailsSubscriptions.put(epic,restApiAdapter.getContractDetailsFlowable(epic)
             .subscribeOn(Schedulers.io())
             .subscribe(
                 updatedContractDetails -> {
