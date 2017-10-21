@@ -52,6 +52,7 @@ Since version 0.3, the plugin supports the brokerCommand setOrderText. Call it l
 brokerCommand(SET_ORDERTEXT,"MyOwnTest");
 ```
 This enables you to set your own references on orders and makes it easier to separating PnL for different strategies in hindsight.
+The text can be no more than 19 characters long, and must only contain A-Z, a-z, 0-9, _ and - 
 
 ## Remarks
 
