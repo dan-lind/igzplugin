@@ -19,7 +19,7 @@ Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
 
 ## Configuration/Usage
 
-##### API Keys
+#### API Keys
 After extracting the igplugin archive you should see a *ig.dll* and a folder *ig* in the *Plugin* directory of your Zorro installation.
 
 If you have not done so already, you now need to generate an API key to be able to use the IG API through Zorro.
