@@ -19,7 +19,7 @@ Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
 
 ## Configuration/Usage
 
-#####API Keys
+### API Keys
 After extracting the igplugin archive you should see a *ig.dll* and a folder *ig* in the *Plugin* directory of your Zorro installation.
 
 If you have not done so already, you now need to generate an API key to be able to use the IG API through Zorro.
@@ -30,7 +30,7 @@ Go to the *ig* folder and open the *application.properties* file with a text edi
 Here you should adapt the *plugin.realApiKey* and/or *plugin.demoApiKey* to your match the values of the keys that you generated in the previos step.
 You can leave the other entries to their default values.
 
-#####Assets
+### Assets
 Before you start Zorro you must also update the AssetsFix.csv with correct symbol names for the assets you want to trade.
 Refer to [The asset list section](http://zorro-trader.com/manual/en/export.htm) of the Zorro manual for details on this.
 The asset names the IG API expects is very different from the ones that Zorro uses by default. For instance the EUR/USD name is CS.D.EURUSD.CFD.IP
@@ -41,12 +41,12 @@ Log in with you user name, password and api key, then scroll down to *Market Sea
 Start Zorro and look in the *Account* drop-down-box. You should see *IG* as an available broker.
 Enter your login details, pick a script of your choice and press *Trade*. If everything is fine you should see that the login to IG has been successful.
 
-#####Logs
+### Logs
 The plugin stores its logs to *ig/logs/igzplugin.log*(the default log level is *info*). If you encounter problems open *ig/igzplugin/logback.xml* for configuring the log level. Then change the log level for the file igzplugin-appender to *debug* and save the file. A new Zorro session will now produce a more verbose *igzplugin.log* file which you can use to report errors.
 
 Please use [pastebin](http://pastebin.com/) for uploading the logs.
 
-#####Logs
+### Order reference text
 Since version 0.3, the plugin supports the brokerCommand setOrderText. Call it like this in your script
 ```
 brokerCommand(SET_ORDERTEXT,"MyOwnTest");
