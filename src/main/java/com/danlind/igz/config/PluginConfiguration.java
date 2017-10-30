@@ -46,11 +46,4 @@ public class PluginConfiguration {
         }
     }
 
-    @Bean
-    @DependsOn(value = "createOrderReferenceMap")
-    public AtomicInteger createAtomicInteger(ChronicleMap<Integer, OrderDetails> orderReferenceMap) {
-        int max = orderReferenceMap.keySet().stream().max(Integer::compareTo).orElse(1000);
-        return new AtomicInteger(max + 1);
-    }
-
 }

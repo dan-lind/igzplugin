@@ -1,5 +1,6 @@
 package com.danlind.igz.adapter;
 
+import com.danlind.igz.config.PluginProperties;
 import com.danlind.igz.domain.AccountDetails;
 import com.danlind.igz.domain.PriceDetails;
 import com.danlind.igz.domain.types.Epic;
@@ -8,6 +9,8 @@ import com.danlind.igz.handler.AssetHandler;
 import com.danlind.igz.ig.api.client.StreamingAPI;
 import com.danlind.igz.ig.api.client.rest.AuthenticationResponseAndConversationContext;
 import com.danlind.igz.ig.api.client.streaming.HandyTableListenerAdapter;
+import com.danlind.igz.misc.ExceptionHelper;
+import com.danlind.igz.misc.RetryWithDelay;
 import com.lightstreamer.ls_client.ConnectionListener;
 import com.lightstreamer.ls_client.UpdateInfo;
 import io.reactivex.Observable;
@@ -35,6 +38,9 @@ public class StreamingApiAdapter {
     private static final String LAST_TRADED_VOLUME = "LTV";
     private static final String ONE = "1";
     private final ArrayList<HandyTableListenerAdapter> listeners = new ArrayList<>();
+
+    @Autowired
+    private PluginProperties pluginProperties;
 
     //Parameter injection here to avoid circular dependencies
 
@@ -135,7 +141,9 @@ public class StreamingApiAdapter {
     }
 
     public Single<ConnectionListener> connect(AuthenticationResponseAndConversationContext authenticationContext) throws Exception {
-        return Single.fromCallable(() -> streamingAPI.connect(authenticationContext.getAccountId(), authenticationContext.getConversationContext(), authenticationContext.getLightstreamerEndpoint()));
+        return Single.fromCallable(() -> streamingAPI.connect(authenticationContext.getAccountId(), authenticationContext.getConversationContext(), authenticationContext.getLightstreamerEndpoint()))
+            .retryWhen(new RetryWithDelay(pluginProperties.getRefreshTokenMaxRetry(), pluginProperties.getRefreshTokenRetryInterval()))
+            .doOnError(err -> LOG.error("Exception when connecting to streaming API, {}", ExceptionHelper.getErrorMessage(err), err));
     }
 
     public void disconnect() {
@@ -148,7 +156,7 @@ public class StreamingApiAdapter {
             try {
                 streamingAPI.unsubscribe(listener.getSubscribedTableKey());
             } catch (Exception e) {
-                LOG.error("Failed to unsubscribe Lightstreamer listener", e);
+                //NOP, exception thrown when disconnected and unsubscription is no longer possible
             }
         }
         listeners.clear();

@@ -4,10 +4,9 @@ import com.danlind.igz.adapter.RestApiAdapter;
 import com.danlind.igz.config.ZorroReturnValues;
 import com.danlind.igz.domain.ContractDetails;
 import com.danlind.igz.domain.OrderDetails;
-import com.danlind.igz.domain.types.OrderText;
 import com.danlind.igz.domain.types.DealId;
-import com.danlind.igz.domain.types.DealReference;
 import com.danlind.igz.domain.types.Epic;
+import com.danlind.igz.domain.types.OrderText;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.GetDealConfirmationV1Response;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Request;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
@@ -26,25 +25,23 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 @Component
-public class BrokerBuy {
+public class BrokerBuy extends BrokerOrder{
 
     private final static Logger LOG = LoggerFactory.getLogger(BrokerBuy.class);
     private final RestApiAdapter restApiAdapter;
     private final MarketDataProvider marketDataProvider;
     private final ChronicleMap<Integer, OrderDetails> orderReferenceMap;
-    private final AtomicInteger atomicInteger;
 
     private OrderText orderText;
 
-    public BrokerBuy(RestApiAdapter restApiAdapter, MarketDataProvider marketDataProvider, ChronicleMap<Integer, OrderDetails> orderReferenceMap, AtomicInteger atomicInteger) {
+    public BrokerBuy(RestApiAdapter restApiAdapter, MarketDataProvider marketDataProvider, ChronicleMap<Integer, OrderDetails> orderReferenceMap) {
+        super(restApiAdapter,orderReferenceMap);
         this.restApiAdapter = restApiAdapter;
         this.marketDataProvider = marketDataProvider;
         this.orderReferenceMap = orderReferenceMap;
-        this.atomicInteger = atomicInteger;
     }
 
     public int createPosition(final Epic epic,
@@ -63,14 +60,10 @@ public class BrokerBuy {
             .blockingGet();
     }
 
-    private Single<Optional<GetDealConfirmationV1Response>> getDealConfirmation(DealReference dealReference) {
-        return restApiAdapter.getDealConfirmation(dealReference.getValue());
-    }
-
     private Single<Integer> buyConfirmationHandler(Optional<GetDealConfirmationV1Response> maybeDealConfirmationResponse, Direction direction, double[] tradeParams) {
         if (maybeDealConfirmationResponse.isPresent()) {
             GetDealConfirmationV1Response dealConfirmationResponse = maybeDealConfirmationResponse.get();
-            int orderId = atomicInteger.getAndIncrement();
+            int orderId = getNextOrderId();
             LOG.debug("Storing open position with orderId {} and dealId {}", orderId, dealConfirmationResponse.getDealId());
             orderReferenceMap.put(orderId, new OrderDetails(new Epic(dealConfirmationResponse.getEpic()), dealConfirmationResponse.getLevel(), direction, dealConfirmationResponse.getSize().intValue(), new DealId(dealConfirmationResponse.getDealId())));
             tradeParams[2] = dealConfirmationResponse.getLevel();
@@ -78,7 +71,6 @@ public class BrokerBuy {
         } else {
             return Single.just(ZorroReturnValues.BROKER_BUY_FAIL.getValue());
         }
-
     }
 
     @NotNull
@@ -140,6 +132,5 @@ public class BrokerBuy {
             LOG.warn("Order text must be alpha numeric and max 19 chars long: {}", orderText.getValue());
             return ZorroReturnValues.BROKER_COMMAND_FAIL.getValue();
         }
-
     }
 }

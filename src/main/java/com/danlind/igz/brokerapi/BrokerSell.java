@@ -23,21 +23,19 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
-public class BrokerSell {
+public class BrokerSell extends BrokerOrder{
 
     private final static Logger LOG = LoggerFactory.getLogger(BrokerSell.class);
     private final RestApiAdapter restApiAdapter;
     private final ChronicleMap<Integer, OrderDetails> orderReferenceMap;
-    private final AtomicInteger atomicInteger;
     private final MarketDataProvider marketDataProvider;
 
-    public BrokerSell(RestApiAdapter restApiAdapter, ChronicleMap<Integer, OrderDetails> orderReferenceMap, AtomicInteger atomicInteger, MarketDataProvider marketDataProvider) {
+    public BrokerSell(RestApiAdapter restApiAdapter, ChronicleMap<Integer, OrderDetails> orderReferenceMap, MarketDataProvider marketDataProvider) {
+        super(restApiAdapter,orderReferenceMap);
         this.restApiAdapter = restApiAdapter;
         this.orderReferenceMap = orderReferenceMap;
-        this.atomicInteger = atomicInteger;
         this.marketDataProvider = marketDataProvider;
     }
 
@@ -62,10 +60,6 @@ public class BrokerSell {
             .blockingGet();
     }
 
-    private Single<Optional<GetDealConfirmationV1Response>> getDealConfirmation(DealReference dealReference) {
-        return restApiAdapter.getDealConfirmation(dealReference.getValue());
-    }
-
     private Single<Integer> closeConfirmationHandler(Optional<GetDealConfirmationV1Response> maybeDealConfirmationResponse, int nOrderId, int lotSize) {
         if (maybeDealConfirmationResponse.isPresent()) {
             GetDealConfirmationV1Response dealConfirmationResponse = maybeDealConfirmationResponse.get();
@@ -78,7 +72,7 @@ public class BrokerSell {
                 return Single.just(nOrderId);
             } else {
                 LOG.debug("Position with deal id {} now partially closed", sellOrderDetails.getDealId().getValue());
-                int newOrderId = atomicInteger.getAndIncrement();
+                int newOrderId = getNextOrderId();
                 orderReferenceMap.put(newOrderId,
                     new OrderDetails(sellOrderDetails.getEpic(),
                         sellOrderDetails.getEntryLevel(),

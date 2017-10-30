@@ -17,6 +17,7 @@ import com.danlind.igz.ig.api.client.rest.dto.positions.otc.closeOTCPositionV1.C
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
 import com.danlind.igz.misc.MarketDataProvider;
 import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
 import org.apache.http.annotation.Contract;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +51,6 @@ public class BrokerSellTest {
     @Mock
     LoginHandler loginHandler;
 
-    @Mock
     ChronicleMap<Integer, OrderDetails> orderReferenceMap;
 
     @Mock
@@ -63,8 +64,6 @@ public class BrokerSellTest {
     @InjectMocks
     RestApiAdapter restApiAdapter;
 
-    AtomicInteger atomicInteger;
-
     BrokerSell brokerSell;
 
     Epic testEpic = new Epic("TestEpic");
@@ -73,13 +72,18 @@ public class BrokerSellTest {
 
     @Before
     public void setUp() throws Exception {
-        atomicInteger = new AtomicInteger(1001);
-        brokerSell = new BrokerSell(restApiAdapter, orderReferenceMap, atomicInteger, marketDataProvider);
+        DealId dealId = new DealId("TestDealId");
+        orderDetails = new OrderDetails(testEpic, 105, Direction.BUY, 100, dealId);
+        orderReferenceMap = initMap();
+        orderReferenceMap.put(1000,orderDetails);
+
+
+        brokerSell = new BrokerSell(restApiAdapter, orderReferenceMap, marketDataProvider);
 
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");
 
-        DealId dealId = new DealId("TestDealId");
+
 
         getDealConfirmationV1Response.setDealId(dealId.getValue());
         getDealConfirmationV1Response.setEpic(testEpic.getName());
@@ -91,7 +95,7 @@ public class BrokerSellTest {
         tradeParams[0] = 100;
         tradeParams[1] = 10;
 
-        orderDetails = new OrderDetails(testEpic, 105, Direction.BUY, 100, dealId);
+
 
         CloseOTCPositionV1Response response = new CloseOTCPositionV1Response();
         response.setDealReference("TestDealReference");
@@ -99,7 +103,6 @@ public class BrokerSellTest {
         ContractDetails contractDetails = new ContractDetails(testEpic, 2, 3, 4, 0.5, 10, 12, "-", "EUR", 1, MarketStatus.TRADEABLE);
 
         when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
-        when(orderReferenceMap.get(1000)).thenReturn(orderDetails);
         when(restApi.closeOTCPositionV1(any(), any())).thenReturn(response);
         when(marketDataProvider.getContractDetails(any())).thenReturn(contractDetails);
         when(pluginProperties.getRestApiMaxRetry()).thenReturn(3);
@@ -116,9 +119,8 @@ public class BrokerSellTest {
     @Test
     public void testClosePartialPositionAccepted() {
         getDealConfirmationV1Response.setStatus(PositionStatus.PARTIALLY_CLOSED);
-        assertEquals(1001, atomicInteger.get());
         assertEquals(1001, brokerSell.closePosition(1000, 50));
-        assertEquals(1002, atomicInteger.get());
+        assertNotNull(orderReferenceMap.get(1001));
     }
 
     @Test
@@ -144,4 +146,15 @@ public class BrokerSellTest {
         when(restApi.getDealConfirmationV1(any(), any())).thenThrow(new RuntimeException("RuntimeException"));
         assertEquals(0, brokerSell.closePosition(1000, 100));
     }
+
+    private ChronicleMap<Integer, OrderDetails>  initMap() {
+        final OrderDetails sampleOrderDetails = new OrderDetails(new Epic("IX.D.OMX.IFD.IP"), 10000, Direction.BUY, 20, new DealId("DIAAAAA9QN6L4AU"));
+
+        return  ChronicleMapBuilder
+            .of(Integer.class, OrderDetails.class)
+            .averageValue(sampleOrderDetails)
+            .entries(50)
+            .create();
+    }
+
 }

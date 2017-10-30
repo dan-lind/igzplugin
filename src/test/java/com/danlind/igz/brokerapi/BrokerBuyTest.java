@@ -11,6 +11,7 @@ import com.danlind.igz.domain.types.OrderText;
 import com.danlind.igz.handler.LoginHandler;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.Reason;
 import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.CreateOTCPositionV2Request;
+import com.danlind.igz.ig.api.client.rest.dto.positions.otc.createOTCPositionV2.Direction;
 import com.danlind.igz.misc.MarketDataProvider;
 import com.danlind.igz.ig.api.client.RestAPI;
 import com.danlind.igz.ig.api.client.rest.dto.getDealConfirmationV1.DealStatus;
@@ -22,7 +23,9 @@ import io.reactivex.functions.Function;
 import io.reactivex.plugins.RxJavaPlugins;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subscribers.TestSubscriber;
+import net.openhft.chronicle.core.values.IntValue;
 import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +45,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,12 +61,11 @@ public class BrokerBuyTest {
     RestAPI restApi;
 
     @Mock
-    LoginHandler loginHandler;
-
-    @Mock
     MarketDataProvider marketDataProvider;
 
     @Mock
+    LoginHandler loginHandler;
+
     ChronicleMap<Integer, OrderDetails> orderReferenceMap;
 
     @Mock
@@ -74,8 +77,6 @@ public class BrokerBuyTest {
     @InjectMocks
     RestApiAdapter restApiAdapter;
 
-    AtomicInteger atomicInteger = new AtomicInteger(1000);
-
     BrokerBuy brokerBuy;
 
     ContractDetails contractDetails;
@@ -85,7 +86,8 @@ public class BrokerBuyTest {
 
     @Before
     public void setUp() throws Exception {
-        brokerBuy = new BrokerBuy(restApiAdapter, marketDataProvider, orderReferenceMap, atomicInteger);
+        orderReferenceMap = initMap();
+        brokerBuy = new BrokerBuy(restApiAdapter, marketDataProvider, orderReferenceMap);
 
         PowerMockito.mockStatic(Zorro.class);
         PowerMockito.doNothing().when(Zorro.class,"indicateError");
@@ -104,7 +106,6 @@ public class BrokerBuyTest {
 
         when(restApi.getDealConfirmationV1(any(), any())).thenReturn(getDealConfirmationV1Response);
         when(orderDetails.getDealId()).thenReturn(new DealId("TestDealId"));
-        when(orderReferenceMap.get(any())).thenReturn(orderDetails);
         when(restApi.createOTCPositionV2(any(), any())).thenReturn(response);
         when(pluginProperties.getRestApiMaxRetry()).thenReturn(3);
         when(pluginProperties.getRestApiRetryInterval()).thenReturn(100);
@@ -117,8 +118,9 @@ public class BrokerBuyTest {
 
     @Test
     public void testCreatePositionAccepted() throws Exception {
-        assertEquals(1000, brokerBuy.createPosition(testEpic,tradeParams));
-        assertEquals(1001, atomicInteger.get());
+        assertEquals(1001, brokerBuy.createPosition(testEpic,tradeParams));
+        assertNotNull(orderReferenceMap.get(1001));
+        assertEquals("TestDealId",orderReferenceMap.get(1001).getDealId().getValue());
         assertEquals(105, tradeParams[2], 0);
     }
 
@@ -184,5 +186,15 @@ public class BrokerBuyTest {
     @Test
     public void testWithNonMatchingOrderText() throws Exception {
         assertEquals(0, brokerBuy.setOrderText(new OrderText("VeryLong0£")));
+    }
+
+    private ChronicleMap<Integer, OrderDetails>  initMap() {
+        final OrderDetails sampleOrderDetails = new OrderDetails(new Epic("IX.D.OMX.IFD.IP"), 10000, Direction.BUY, 20, new DealId("DIAAAAA9QN6L4AU"));
+
+        return  ChronicleMapBuilder
+            .of(Integer.class, OrderDetails.class)
+            .averageValue(sampleOrderDetails)
+            .entries(50)
+            .create();
     }
 }

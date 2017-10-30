@@ -152,6 +152,7 @@ public class RestApiAdapter {
 
     public Single<AuthenticationResponseAndConversationContext> createSessionV3(CreateSessionV3Request authRequest, String apiKey) {
         return Single.fromCallable(() -> restApi.createSessionV3(authRequest, apiKey))
+            .retryWhen(new RetryWithDelay(pluginProperties.getRefreshTokenMaxRetry(), pluginProperties.getRefreshTokenRetryInterval()))
             .doOnError(err -> LOG.error("Exception when logging in, {}", ExceptionHelper.getErrorMessage(err), err));
     }
 
