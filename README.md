@@ -13,6 +13,9 @@ Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
 
 3.) Install [Zorro](http://www.takemoneyfromtherichandgiveittothepoor.com/download.php) if not already on your machine.
 
+In most cases, following steps 1-3 should be enough as the IG plugin is now distributed with Zorro.
+If there is a new version of the plugin that you want to run, that has not yet been distributed by Zorro, follow steps 4-5 below:
+
 4.) Download the [igplugin.zip](https://github.com/dan-lind/igzplugin/releases) archive.
 
 5.) Extract the archive into *${yourZorroInstallPath\Plugin}* folder.
@@ -56,7 +59,6 @@ The text can be no more than 19 characters long, and must only contain A-Z, a-z,
 
 ## Remarks
 
-- This is a early release of the plugin so **don't expect it to be bug free!**
 - You WILL need to update the AssetsFix with Symbol names. For instance the EUR/USD name is CS.D.EURUSD.CFD.IP
 - The default allowance for IG historic prices is 10 000 quotes per week. If your allowance goes to zero, you won't even be able to download quotes for the lookback period. This means it is not a good idea to use IG as a source for downloading long periods of historic data.
 - Keep your historic data as up to date as possible and prefer using the [PRELOAD-flag](http://www.zorro-trader.com/manual/en/mode.htm) in you scripts. Even just filling the lookback will get rate limited if you have many assets and are too far behind on historic data.
