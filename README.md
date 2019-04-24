@@ -1,6 +1,6 @@
 ## IG Zorro Plugin
 
-This a plugin for [Zorro](http://www.takemoneyfromtherichandgiveittothepoor.com/) which lets you trade with [IG](http://www.ig.com). It implements the [Zorro-Broker-API](http://www.zorro-trader.com/manual/en/brokerplugin.htm).
+This a plugin for [Zorro](https://zorro-trader.com/) which lets you trade with [IG](http://www.ig.com). It implements the [Zorro-Broker-API](http://www.zorro-trader.com/manual/en/brokerplugin.htm).
 
 It borrows heavily from the [Dukascopy plugin for Zorro](https://github.com/juxeii/dztools/), especially the c++ bridge.
 Thanks to [juxeii](https://github.com/juxeii) for open sourcing his code
