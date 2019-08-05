@@ -74,7 +74,7 @@ public class BrokerHistoryTest {
     @Test
     public void testGetHistory() throws Exception {
         double[] params = new double[21];
-        assertEquals(3, brokerHistory.getPriceHistory(new Epic("Test"),30000,30020,1,60,params));
+        assertEquals(3, brokerHistory.getPriceHistory(new Epic("MyTestClass"),30000,30020,1,60,params));
         assertEquals(290, params[0], 0);
         assertEquals(190, params[7], 0);
         assertEquals(200, params[8], 0);
@@ -86,7 +86,7 @@ public class BrokerHistoryTest {
 
     @Test
     public void testGetHistorySimple() throws Exception {
-        List<PricesItem> pricesItems = brokerHistory.getPriceHistory(new Epic("Test"),3);
+        List<PricesItem> pricesItems = brokerHistory.getPriceHistory(new Epic("MyTestClass"),3);
         assertEquals(3, pricesItems.size());
     }
 
